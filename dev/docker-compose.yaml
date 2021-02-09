@@ -1,0 +1,26 @@
+version: '3.1'
+services:
+  db:
+    image: "postgres:12"
+    restart: always
+    env_file: ../.env
+    environment:
+      POSTGRES_USER: $DB_USER
+      POSTGRES_PASSWORD: $DB_PASS
+      POSTGRES_DB: $DB_NAME
+    volumes:
+      - .:/docker-entrypoint-initdb.d
+      - ../.data/postgres/out/data:/var/lib/postgresql/data
+      - ../.data/postgres/out/logs:/logs
+    ports:
+      - "5433:5432"
+
+  pgadmin4:
+    image: dpage/pgadmin4
+    ports:
+      - 8080:80
+    env_file: ../.env
+    environment:
+      PGADMIN_DEFAULT_EMAIL: $PGADMIN_LOGIN
+      PGADMIN_DEFAULT_PASSWORD: $PGADMIN_PASS
+
