@@ -79,7 +79,7 @@ func MarshalToResponse(model interface{}, w io.Writer) error {
 func (ctr *UserController) GetList(ctx echo.Context) error {
 	ctx.Response().Header().Set(echo.HeaderContentType, jsonapi.MediaType)
 
-	filters, err := filt.GetFiltersFromContext(ctx)
+	filters, err := filt.GetFiltersFromQueryString(ctx.Request().URL.RawQuery)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, errors.Wrap(err, "could not parse params"))
 	}

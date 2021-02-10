@@ -3,18 +3,19 @@ package filters
 import (
 	"errors"
 	"fmt"
-	"github.com/labstack/echo/v4"
 	"gorm.io/gorm"
+	"reflect"
+	"strconv"
 	"strings"
 )
 
 //var queryFilterRegex = regexp.MustCompile(`^filters\[(\w+)\]$`)
 
 type Filter struct {
-	Association string
-	Field       string
-	Operator    string
-	Value       string
+	Relation string
+	Field    string
+	Operator string
+	Value    interface{}
 }
 
 func SetGormFilters(db *gorm.DB, model interface{}, f []*Filter) (*gorm.DB, error) {
@@ -29,8 +30,8 @@ func SetGormFilters(db *gorm.DB, model interface{}, f []*Filter) (*gorm.DB, erro
 	}
 
 	for _, filter := range f {
-		if filter.Association != "" {
-			rel, ok := db.Statement.Schema.Relationships.Relations[filter.Association]
+		if filter.Relation != "" {
+			rel, ok := db.Statement.Schema.Relationships.Relations[filter.Relation]
 			if !ok {
 				return nil, errors.New("wrong filter")
 			}
@@ -47,7 +48,7 @@ func SetGormFilters(db *gorm.DB, model interface{}, f []*Filter) (*gorm.DB, erro
 
 			db = db.Joins(joinStr, filter.Value)
 		} else {
-			whereStr := fmt.Sprintf("%v%v?", filter.Field, filter.Operator)
+			whereStr := fmt.Sprintf("%v%v?", filter.Field, filter.Operator) //TODO security? sql injection!
 			db = db.Where(whereStr, filter.Value)
 		}
 	}
@@ -56,8 +57,8 @@ func SetGormFilters(db *gorm.DB, model interface{}, f []*Filter) (*gorm.DB, erro
 	//var tx *gorm.DB
 	//tx = db
 	//for _, val := range f {
-	//	if val.Association != "" {
-	//		as := tx.Association(val.Association)
+	//	if val.Relation != "" {
+	//		as := tx.Relation(val.Relation)
 	//
 	//	}
 	//
@@ -78,12 +79,145 @@ func SetGormFilters(db *gorm.DB, model interface{}, f []*Filter) (*gorm.DB, erro
 	//return tx
 }
 
-func GetFiltersFromContext(ctx echo.Context) ([]*Filter, error) {
+func buildFieldByTagMap(tagKey string, srcType reflect.Type) (map[string]string, error) {
+	src := srcType
+	if src.Kind() == reflect.Ptr {
+		src = srcType.Elem()
+	}
+	if src.Kind() != reflect.Struct {
+		return nil, fmt.Errorf("bad type")
+	}
+	fieldsByTag := make(map[string]string)
 
-	if !strings.HasPrefix(ctx.Request().URL.RawQuery, "filter=") {
+	for i := 0; i < src.NumField(); i++ {
+		f := src.Field(i)
+		v := f.Tag.Get(tagKey) //strings.Split(f.Tag.Get(tagKey), ",")[0]
+		if v == "" || v == "-" {
+			continue
+		}
+		fieldsByTag[v] = f.Name
+	}
+	return fieldsByTag, nil
+}
+
+func Transform(f []*Filter, modelWeb interface{}, modelDest interface{}) ([]*Filter, error) {
+	if f == nil {
 		return nil, nil
 	}
-	query := strings.TrimPrefix(ctx.Request().URL.RawQuery, "filter=")
+
+	refWeb := reflect.TypeOf(modelWeb)
+	//refDest := reflect.TypeOf(modelDest)
+
+	res := make([]*Filter, len(f), cap(f))
+
+	tagMap, err := buildFieldByTagMap("jsonapi", reflect.TypeOf(modelWeb))
+	if err != nil {
+		return nil, err
+	}
+
+	for i, filt := range f {
+		fNew := &Filter{
+			Operator: filt.Operator,
+		}
+
+		filtVal := reflect.ValueOf(&fNew.Value)
+
+		if filt.Relation != "" {
+
+			tagName := "relation," + filt.Relation
+			relFieldName, ok := tagMap[tagName]
+			if !ok {
+				return nil, fmt.Errorf("cant find field %v", filt.Field)
+			}
+
+			rel, ok := refWeb.FieldByName(relFieldName)
+			if !ok {
+				return nil, fmt.Errorf("cant find Relation name %v", filt.Relation)
+			}
+
+			relTagMap, err := buildFieldByTagMap("jsonapi", rel.Type)
+			if err != nil {
+				return nil, err
+			}
+
+			tagName = "attr," + filt.Field
+			fieldName, ok := relTagMap[tagName]
+			if !ok {
+				return nil, fmt.Errorf("cant find field %v", filt.Field)
+			}
+
+			field, ok := rel.Type.Elem().FieldByName(fieldName)
+			if !ok {
+				return nil, fmt.Errorf("cant find field %v", filt.Field)
+			}
+
+			err = setFilterVal(filtVal, field.Type, filt.Value.(string))
+			if err != nil {
+				return nil, fmt.Errorf("error with field %v : %v", filt.Field, err)
+			}
+
+		} else {
+			tagName := "attr," + filt.Field
+			fieldName, ok := tagMap[tagName]
+			if !ok {
+				return nil, fmt.Errorf("cant find field %v", filt.Field)
+			}
+			field, ok := refWeb.FieldByName(fieldName)
+			if !ok {
+				return nil, fmt.Errorf("cant find field %v", filt.Field)
+			}
+
+			err := setFilterVal(filtVal, field.Type, filt.Value.(string))
+			if err != nil {
+				return nil, fmt.Errorf("error with field %v : %v", filt.Field, err)
+			}
+		}
+
+		res[i] = fNew
+	}
+
+	return res, nil
+}
+
+func setFilterVal(filt reflect.Value, fieldType reflect.Type, newVal string) error {
+	typeKind := fieldType.Kind()
+	switch typeKind {
+	case reflect.Bool:
+		newVal, err := strconv.ParseBool(newVal)
+		if err != nil {
+			return fmt.Errorf("cant parse field to bool type")
+		}
+		filt.Elem().Set(reflect.ValueOf(newVal))
+
+	case reflect.String:
+		filt.Elem().Set(reflect.ValueOf(newVal))
+
+	case reflect.Int:
+		newVal, err := strconv.Atoi(newVal)
+		if err != nil {
+			return fmt.Errorf("cant parse field to int type")
+		}
+		filt.Elem().Set(reflect.ValueOf(newVal))
+
+	case reflect.Float64:
+		newVal, err := strconv.ParseFloat(newVal, 64)
+		if err != nil {
+			return fmt.Errorf("cant parse field to int type")
+		}
+		filt.Elem().Set(reflect.ValueOf(newVal))
+	default:
+		return fmt.Errorf("unexpected type ")
+	}
+
+	return nil
+}
+
+func GetFiltersFromQueryString(queryStr string) ([]*Filter, error) {
+
+	if !strings.HasPrefix(queryStr, "filter=") {
+		return nil, nil
+	}
+	query := strings.TrimPrefix(queryStr, "filter=")
 
 	filters := make([]*Filter, 0, 1)
 
@@ -95,7 +229,7 @@ func GetFiltersFromContext(ctx echo.Context) ([]*Filter, error) {
 
 			i := strings.Index(p2, ".")
 			if i > 0 {
-				fNew.Association = p2[:i]
+				fNew.Relation = p2[:i]
 				p2 = p2[i+1:]
 			}
 
@@ -104,6 +238,7 @@ func GetFiltersFromContext(ctx echo.Context) ([]*Filter, error) {
 				return nil, fmt.Errorf("Wrong query parameter - cant find operator in %v", p2)
 			}
 			fNew.Operator = operator
+
 			fNew.Field = p2[:operIndex]
 			fNew.Value = p2[operIndex+len(operator):]
 			filters = append(filters, fNew)
