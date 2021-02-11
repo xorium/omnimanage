@@ -25,10 +25,10 @@ func (m Location) ToWeb() *omnimodels.Location {
 	web.Timezone = m.Timezone
 	//info
 	if m.Company != nil {
-		web.Company = m.Company.ToWeb()
+		//web.Company = m.Company.ToWeb()
 	}
 	web.Children = LocationsToWeb(m.Children)
-	web.Users = UsersToWeb(m.Users)
+	//web.Users = UsersToWeb(m.Users)
 
 	return web
 }

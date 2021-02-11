@@ -8,7 +8,7 @@ import (
 // HTTPError is our HTTP error definition.
 type HTTPError struct {
 	//Code    int    `json:"code"`
-	//Name    string `json:"name"`
+	//UserName    string `json:"name"`
 	//Message string `json:"message"`
 	//Cause   string `json:"cause,omitempty"`
 	jsonapi.ErrorObject
@@ -46,7 +46,7 @@ func Error(err error, ctx echo.Context) {
 	//	errObj.Code = he.Code
 	//	errObj.Message = fmt.Sprintf("%v", he.Message)
 	//}
-	//errObj.Name = http.StatusText(errObj.Code)
+	//errObj.UserName = http.StatusText(errObj.Code)
 	//if !ctx.Response().Committed {
 	//	if ctx.Request().Method == echo.HEAD {
 	//		ctx.NoContent(errObj.Code)

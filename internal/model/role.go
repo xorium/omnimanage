@@ -27,7 +27,7 @@ func (m *Role) ToWeb() *omnimodels.Role {
 	web.Persistent = m.Persistent
 	//Users...
 	if m.Company != nil {
-		web.Company = m.Company.ToWeb()
+		//web.Company = m.Company.ToWeb()
 	}
 	return web
 }

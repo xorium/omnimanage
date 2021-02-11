@@ -23,7 +23,7 @@ func TestTransform(t *testing.T) {
 
 	ev := models.Event{}
 
-	fNew, err := Transform(f, ev, nil)
+	fNew, err := TransformWebToSrc(f, ev, nil)
 	if err != nil {
 		t.Error(err)
 	}

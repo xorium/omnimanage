@@ -3,7 +3,9 @@ package filters
 import (
 	"errors"
 	"fmt"
+	"github.com/fatih/structs"
 	"gorm.io/gorm"
+	"omnimanage/pkg/mapper"
 	"reflect"
 	"strconv"
 	"strings"
@@ -18,6 +20,12 @@ type Filter struct {
 	Value    interface{}
 }
 
+const (
+	JSONAPIRelationTagPrefix  = "relation,"
+	JSONAPIAttributeTagPrefix = "attr,"
+	JSONAPIIdFieldName        = "id"
+)
+
 func SetGormFilters(db *gorm.DB, model interface{}, f []*Filter) (*gorm.DB, error) {
 
 	if f == nil {
@@ -30,11 +38,13 @@ func SetGormFilters(db *gorm.DB, model interface{}, f []*Filter) (*gorm.DB, erro
 	}
 
 	for _, filter := range f {
+		dbFieldName := db.Statement.NamingStrategy.ColumnName("", filter.Field)
 		if filter.Relation != "" {
 			rel, ok := db.Statement.Schema.Relationships.Relations[filter.Relation]
 			if !ok {
 				return nil, errors.New("wrong filter")
 			}
+
 			joinStr := fmt.Sprintf("JOIN %v on %v.%v=%v.%v and %v.%v%v?",
 				rel.FieldSchema.Table,
 				rel.FieldSchema.Table,
@@ -42,41 +52,18 @@ func SetGormFilters(db *gorm.DB, model interface{}, f []*Filter) (*gorm.DB, erro
 				rel.Schema.Table,
 				rel.References[0].ForeignKey.DBName,
 				rel.FieldSchema.Table,
-				filter.Field,
+				dbFieldName,
 				filter.Operator,
 			)
 
 			db = db.Joins(joinStr, filter.Value)
 		} else {
-			whereStr := fmt.Sprintf("%v%v?", filter.Field, filter.Operator) //TODO security? sql injection!
+			whereStr := fmt.Sprintf("%v%v?", dbFieldName, filter.Operator) //TODO security? sql injection!
 			db = db.Where(whereStr, filter.Value)
 		}
 	}
 	return db, nil
 
-	//var tx *gorm.DB
-	//tx = db
-	//for _, val := range f {
-	//	if val.Relation != "" {
-	//		as := tx.Relation(val.Relation)
-	//
-	//	}
-	//
-	//}
-	//
-	//return tx
-	//if filters != nil {
-	//	for col, val := range filters {
-	//		if tx == nil {
-	//			tx = db.Where(fmt.Sprintf("%v = ?", col), val)
-	//			continue
-	//		}
-	//		tx = tx.Where(fmt.Sprintf("%v = ?", col), val)
-	//	}
-	//} else {
-	//	tx = db
-	//}
-	//return tx
 }
 
 func buildFieldByTagMap(tagKey string, srcType reflect.Type) (map[string]string, error) {
@@ -100,83 +87,169 @@ func buildFieldByTagMap(tagKey string, srcType reflect.Type) (map[string]string,
 	return fieldsByTag, nil
 }
 
-func Transform(f []*Filter, modelWeb interface{}, modelDest interface{}) ([]*Filter, error) {
+func TransformWebToSrc(f []*Filter, modelWeb interface{}, modelSrc mapper.ISrcModel) (out []*Filter, errOut error) {
 	if f == nil {
 		return nil, nil
 	}
 
-	refWeb := reflect.TypeOf(modelWeb)
-	//refDest := reflect.TypeOf(modelDest)
+	defer func() {
+		if r := recover(); r != nil {
+			errOut = fmt.Errorf("panic: %v", r)
+		}
+	}()
 
-	res := make([]*Filter, len(f), cap(f))
+	refWeb := reflect.TypeOf(modelWeb)
+
+	out = make([]*Filter, len(f), cap(f))
 
 	tagMap, err := buildFieldByTagMap("jsonapi", reflect.TypeOf(modelWeb))
 	if err != nil {
 		return nil, err
 	}
 
-	for i, filt := range f {
-		fNew := &Filter{
-			Operator: filt.Operator,
-		}
+	srcS := structs.New(modelSrc)
+	srcM := srcS.Map()
 
-		filtVal := reflect.ValueOf(&fNew.Value)
+	modelSrcMaps := modelSrc.GetModelMapper()
+
+	for i, filt := range f {
+		var fNew *Filter
+
+		fNewTmp := &Filter{}
+		tmpVal := reflect.ValueOf(&fNewTmp.Value)
+
+		var ok bool
+		var webFieldName string
+		var webField reflect.StructField
 
 		if filt.Relation != "" {
-
-			tagName := "relation," + filt.Relation
-			relFieldName, ok := tagMap[tagName]
+			// get web relation field name by tag
+			relWebFieldName, ok := tagMap[JSONAPIRelationTagPrefix+filt.Relation]
 			if !ok {
-				return nil, fmt.Errorf("cant find field %v", filt.Field)
+				return nil, fmt.Errorf("cant find Field %v", filt.Field)
 			}
 
-			rel, ok := refWeb.FieldByName(relFieldName)
+			relationRef, ok := refWeb.FieldByName(relWebFieldName)
 			if !ok {
 				return nil, fmt.Errorf("cant find Relation name %v", filt.Relation)
 			}
 
-			relTagMap, err := buildFieldByTagMap("jsonapi", rel.Type)
+			relTagMap, err := buildFieldByTagMap("jsonapi", relationRef.Type)
 			if err != nil {
 				return nil, err
 			}
 
-			tagName = "attr," + filt.Field
-			fieldName, ok := relTagMap[tagName]
-			if !ok {
-				return nil, fmt.Errorf("cant find field %v", filt.Field)
+			// process attr field
+			if filt.Field != JSONAPIIdFieldName {
+				webFieldName, ok = relTagMap[JSONAPIAttributeTagPrefix+filt.Field]
+				if !ok {
+					return nil, fmt.Errorf("cant find Field %v", filt.Field)
+				}
+			} else {
+				webFieldName = "ID"
 			}
 
-			field, ok := rel.Type.Elem().FieldByName(fieldName)
+			webField, ok = relationRef.Type.Elem().FieldByName(webFieldName)
 			if !ok {
-				return nil, fmt.Errorf("cant find field %v", filt.Field)
+				return nil, fmt.Errorf("cant find Field %v", filt.Field)
 			}
 
-			err = setFilterVal(filtVal, field.Type, filt.Value.(string))
+			err = setFilterVal(tmpVal, webField.Type, filt.Value.(string))
 			if err != nil {
-				return nil, fmt.Errorf("error with field %v : %v", filt.Field, err)
+				return nil, fmt.Errorf("error with Field %v : %v", filt.Field, err)
+			}
+
+			// get model mapper by relation field name
+			modelRelFieldMapper := mapper.GetModelMapByWebName(relWebFieldName, modelSrcMaps)
+			if modelRelFieldMapper == nil {
+				return nil, fmt.Errorf("Cannot find map for field %v", relWebFieldName)
+			}
+
+			srcRelModel, ok := srcM[modelRelFieldMapper.SrcName]
+			if !ok {
+				return nil, fmt.Errorf("Cannot find map for field %v", relWebFieldName)
+			}
+
+			srcModel, ok := srcRelModel.(mapper.ISrcModel)
+			if !ok {
+				return nil, fmt.Errorf("Cannot find map for field %v", relWebFieldName)
+			}
+
+			modelSrcRelMaps := srcModel.GetModelMapper()
+
+			// Web field name and value -> Src field name and value
+			modelFieldMapper := mapper.GetModelMapByWebName(webFieldName, modelSrcRelMaps)
+			if modelFieldMapper == nil {
+				return nil, fmt.Errorf("Cannot find map for field %v", webFieldName)
+			}
+
+			var srcVal interface{}
+			if modelFieldMapper.ConverterToSrc != nil {
+				srcVal, err = modelFieldMapper.ConverterToSrc(tmpVal.Elem().Interface())
+				if err != nil {
+					return nil, fmt.Errorf("error with Field %v : %v", filt.Field, err)
+				}
+			} else {
+				srcVal = tmpVal.Elem().Interface()
+			}
+
+			fNew = &Filter{
+				Relation: modelRelFieldMapper.SrcName,
+				Operator: filt.Operator,
+				Field:    modelFieldMapper.SrcName,
+				Value:    srcVal,
 			}
 
 		} else {
-			tagName := "attr," + filt.Field
-			fieldName, ok := tagMap[tagName]
-			if !ok {
-				return nil, fmt.Errorf("cant find field %v", filt.Field)
-			}
-			field, ok := refWeb.FieldByName(fieldName)
-			if !ok {
-				return nil, fmt.Errorf("cant find field %v", filt.Field)
+			// get web field name by tag
+			if filt.Field != JSONAPIIdFieldName {
+				webFieldName, ok = tagMap[JSONAPIAttributeTagPrefix+filt.Field]
+				if !ok {
+					return nil, fmt.Errorf("cant find Field %v", filt.Field)
+				}
+			} else {
+				webFieldName = "ID"
 			}
 
-			err := setFilterVal(filtVal, field.Type, filt.Value.(string))
-			if err != nil {
-				return nil, fmt.Errorf("error with field %v : %v", filt.Field, err)
+			// write filt.Value to tmpVal(type interface{})
+			webField, ok = refWeb.FieldByName(webFieldName)
+			if !ok {
+				return nil, fmt.Errorf("cant find Field %v", filt.Field)
 			}
+
+			err = setFilterVal(tmpVal, webField.Type, filt.Value.(string))
+			if err != nil {
+				return nil, fmt.Errorf("error with Field %v : %v", filt.Field, err)
+			}
+
+			// Web field name and value -> Src field name and value
+			modelFieldMapper := mapper.GetModelMapByWebName(webFieldName, modelSrcMaps)
+			if modelFieldMapper == nil {
+				return nil, fmt.Errorf("Cannot find map for field %v", webFieldName)
+			}
+
+			var srcVal interface{}
+			if modelFieldMapper.ConverterToSrc != nil {
+				srcVal, err = modelFieldMapper.ConverterToSrc(tmpVal.Elem().Interface())
+				if err != nil {
+					return nil, fmt.Errorf("error with Field %v : %v", filt.Field, err)
+				}
+			} else {
+				srcVal = tmpVal.Elem().Interface()
+			}
+
+			fNew = &Filter{
+				Operator: filt.Operator,
+				Field:    modelFieldMapper.SrcName,
+				Value:    srcVal,
+			}
+
 		}
 
-		res[i] = fNew
+		out[i] = fNew
 	}
 
-	return res, nil
+	return out, nil
 }
 
 func setFilterVal(filt reflect.Value, fieldType reflect.Type, newVal string) error {
@@ -212,12 +285,16 @@ func setFilterVal(filt reflect.Value, fieldType reflect.Type, newVal string) err
 	return nil
 }
 
-func GetFiltersFromQueryString(queryStr string) ([]*Filter, error) {
-
+func GetFiltersFromQueryString(queryStr string, modelWeb interface{}) ([]*Filter, error) {
 	if !strings.HasPrefix(queryStr, "filter=") {
 		return nil, nil
 	}
 	query := strings.TrimPrefix(queryStr, "filter=")
+
+	tagMap, err := buildFieldByTagMap("jsonapi", reflect.TypeOf(modelWeb))
+	if err != nil {
+		return nil, err
+	}
 
 	filters := make([]*Filter, 0, 1)
 
@@ -240,6 +317,11 @@ func GetFiltersFromQueryString(queryStr string) ([]*Filter, error) {
 			fNew.Operator = operator
 
 			fNew.Field = p2[:operIndex]
+			_, isRelation := tagMap[JSONAPIRelationTagPrefix+fNew.Field]
+			if isRelation {
+				fNew.Relation = fNew.Field
+				fNew.Field = JSONAPIIdFieldName
+			}
 			fNew.Value = p2[operIndex+len(operator):]
 			filters = append(filters, fNew)
 
@@ -247,29 +329,6 @@ func GetFiltersFromQueryString(queryStr string) ([]*Filter, error) {
 	}
 
 	return filters, nil
-	//filter = strings.ReplaceAll(filter, "&&", " and ")
-	//filter = strings.ReplaceAll(filter, "||", " or ")
-	//return filter, nil
-
-	//params, err := ctx.FormParams()
-	//if err != nil {
-	//	return "", err
-	//}
-	//
-	////filt = strings.ReplaceAll(" and ", "&&", filt)
-
-	//filters := make(map[string]string)
-	//for key, val := range params {
-	//match := queryFilterRegex.FindStringSubmatch(key)
-	//if len(match) > 1 {
-	//	filters[match[1]] = val[0]
-	//}
-
-	//}
-	//if len(filters) == 0 {
-	//	return nil, nil
-	//}
-	//return filters, nil
 }
 
 func GetOperator(s string) (string, int) {

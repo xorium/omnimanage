@@ -5,6 +5,7 @@ import (
 	"github.com/google/jsonapi"
 	"github.com/labstack/echo/v4"
 	"github.com/pkg/errors"
+	omnimodels "gitlab.omnicube.ru/libs/omnilib/models"
 	"io"
 	"net/http"
 	"omnimanage/internal/model"
@@ -36,7 +37,12 @@ func (ctr *UserController) GetOne(ctx echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, err)
 	}
 
-	err = MarshalToResponse(user.ToWeb(), ctx.Response())
+	webUser, err := user.ToWeb()
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err)
+	}
+
+	err = MarshalToResponse(webUser, ctx.Response())
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err)
 	}
@@ -79,17 +85,27 @@ func MarshalToResponse(model interface{}, w io.Writer) error {
 func (ctr *UserController) GetList(ctx echo.Context) error {
 	ctx.Response().Header().Set(echo.HeaderContentType, jsonapi.MediaType)
 
-	filters, err := filt.GetFiltersFromQueryString(ctx.Request().URL.RawQuery)
+	filters, err := filt.GetFiltersFromQueryString(ctx.Request().URL.RawQuery, omnimodels.User{})
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, errors.Wrap(err, "could not parse params"))
 	}
 
-	users, err := ctr.store.Users.GetList(ctx.Request().Context(), filters)
+	srcFilters, err := filt.TransformWebToSrc(filters, omnimodels.User{}, &model.User{})
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err)
 	}
 
-	err = MarshalToResponse(model.UsersToWeb(users), ctx.Response())
+	users, err := ctr.store.Users.GetList(ctx.Request().Context(), srcFilters)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err)
+	}
+
+	webUsers, err := model.UsersToWeb(users)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err)
+	}
+
+	err = MarshalToResponse(webUsers, ctx.Response())
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err)
 	}
