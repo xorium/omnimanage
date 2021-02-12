@@ -26,7 +26,7 @@ func (m *Company) GetModelMapper() []*mapper.ModelMapper {
 				}
 				id, err := strconv.Atoi(w)
 				if err != nil {
-					return nil, fmt.Errorf("Wrong User ID: %v", w)
+					return nil, fmt.Errorf("Wrong Company ID: %v", w)
 				}
 				return id, nil
 			},

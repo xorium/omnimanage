@@ -8,16 +8,16 @@ import (
 func TestTransform(t *testing.T) {
 	f := []*Filter{
 		&Filter{
-			Relation: "company",
-			Field:    "name",
-			Operator: "=",
-			Value:    "aaa",
+			Relation:        "company",
+			Field:           "name",
+			CompareOperator: "=",
+			Value:           "aaa",
 		},
 		&Filter{
-			Relation: "",
-			Field:    "time",
-			Operator: "=",
-			Value:    "123123",
+			Relation:        "",
+			Field:           "time",
+			CompareOperator: "=",
+			Value:           "123123",
 		},
 	}
 
