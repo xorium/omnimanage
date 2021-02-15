@@ -31,73 +31,91 @@ const (
 	FilterOperatorIN = "IN"
 )
 
-func SetGormFilters(db *gorm.DB, model interface{}, filtersIn []*Filter) (*gorm.DB, error) {
-
-	if filtersIn == nil {
-		return db, nil
-	}
-
-	err := db.Statement.Parse(model)
+func ParseFiltersFromQueryToSrcModel(queryStr string, modelWeb interface{}, modelSrc mapper.ISrcModel) ([]*Filter, error) {
+	filtersStrings, err := GetFiltersFromQueryString(queryStr, modelWeb)
 	if err != nil {
 		return nil, err
 	}
 
-	for _, filter := range filtersIn {
-		dbFieldName := db.Statement.NamingStrategy.ColumnName("", filter.Field)
-		if filter.Relation != "" {
-			rel, ok := db.Statement.Schema.Relationships.Relations[filter.Relation]
-			if !ok {
-				return nil, errors.New("wrong filter")
-			}
-
-			var joinType string
-			//if filter.LogicalOperator == "AND" {
-			joinType = "JOIN"
-			//} else {
-			//	joinType = "LEFT JOIN"
-			//}
-
-			joinStr := fmt.Sprintf("%v %v on %v.%v=%v.%v and %v.%v%v?",
-				joinType,
-				rel.FieldSchema.Table,
-				rel.FieldSchema.Table,
-				rel.References[0].PrimaryKey.DBName,
-				rel.Schema.Table,
-				rel.References[0].ForeignKey.DBName,
-				rel.FieldSchema.Table,
-				dbFieldName,
-				filter.CompareOperator,
-			)
-
-			db = db.Joins(joinStr, filter.Value)
-		} else {
-			whereStr := fmt.Sprintf("%v%v?", dbFieldName, filter.CompareOperator) //TODO security? sql injection!
-			db = db.Where(whereStr, filter.Value)
-		}
+	srcFilters, err := TransformWebToSrc(filtersStrings, modelWeb, modelSrc)
+	if err != nil {
+		return nil, err
 	}
-	return db, nil
 
+	return srcFilters, nil
 }
 
-func buildFieldsMapByTag(tagKey string, srcType reflect.Type) (map[string]string, error) {
-	src := srcType
-	if src.Kind() == reflect.Ptr {
-		src = srcType.Elem()
+func GetFiltersFromQueryString(queryStr string, modelWeb interface{}) ([]*Filter, error) {
+	if !strings.HasPrefix(queryStr, "filter=") {
+		return nil, nil
 	}
-	if src.Kind() != reflect.Struct {
-		return nil, fmt.Errorf("bad type")
-	}
-	fieldsByTag := make(map[string]string)
+	query := strings.TrimPrefix(queryStr, "filter=")
 
-	for i := 0; i < src.NumField(); i++ {
-		f := src.Field(i)
-		v := f.Tag.Get(tagKey) //strings.Split(f.Tag.Get(tagKey), ",")[0]
-		if v == "" || v == "-" {
-			continue
-		}
-		fieldsByTag[v] = f.Name
+	tagMap, err := buildFieldsMapByTag("jsonapi", reflect.TypeOf(modelWeb))
+	if err != nil {
+		return nil, err
 	}
-	return fieldsByTag, nil
+
+	filters := make([]*Filter, 0, 1)
+
+	partsOR := strings.Split(query, "||")
+	for indexOR, pOR := range partsOR {
+		partsAND := strings.Split(pOR, "&&")
+
+		filtersAND := make([]*Filter, 0, 1)
+		for indexAND, pAND := range partsAND {
+
+			fNew := &Filter{}
+
+			i := strings.Index(pAND, ".")
+			if i > 0 {
+				fNew.Relation = pAND[:i]
+				pAND = pAND[i+1:]
+			}
+
+			operator, operIndex := GetOperator(pAND)
+			if operIndex < 0 {
+				return nil, fmt.Errorf("Wrong query parameter - cant find operator in %v", pAND)
+			}
+			fNew.CompareOperator = operator
+
+			fNew.Field = pAND[:operIndex]
+			_, isRelation := tagMap[JSONAPIRelationTagPrefix+fNew.Field]
+			if isRelation {
+				fNew.Relation = fNew.Field
+				fNew.Field = JSONAPIIdFieldName
+			}
+
+			if fNew.CompareOperator == FilterOperatorIN {
+				valueRange := strings.Split(pAND[operIndex+len(operator):], ",")
+				fNew.Value = valueRange
+			} else {
+				fNew.Value = pAND[operIndex+len(operator):]
+			}
+
+			fNew.LogicalOperator = "AND"
+
+			//Clear last in parts
+			if indexAND == len(partsAND)-1 {
+				fNew.LogicalOperator = ""
+			}
+
+			filtersAND = append(filtersAND, fNew)
+		}
+
+		logicalOperOR := "OR"
+		if indexOR == len(partsOR)-1 {
+			logicalOperOR = ""
+		}
+		for indexAND, f := range filtersAND {
+			if indexAND == len(filtersAND)-1 {
+				f.LogicalOperator = logicalOperOR
+			}
+			filters = append(filters, f)
+		}
+	}
+
+	return filters, nil
 }
 
 func TransformWebToSrc(filtersIn []*Filter, modelWeb interface{}, modelSrc mapper.ISrcModel) (out []*Filter, errOut error) {
@@ -111,7 +129,10 @@ func TransformWebToSrc(filtersIn []*Filter, modelWeb interface{}, modelSrc mappe
 		}
 	}()
 
-	webModelRef := reflect.TypeOf(modelWeb)
+	webModelRefType := reflect.TypeOf(modelWeb)
+	if webModelRefType.Kind() == reflect.Ptr {
+		webModelRefType = webModelRefType.Elem()
+	}
 
 	out = make([]*Filter, len(filtersIn), cap(filtersIn))
 
@@ -134,7 +155,7 @@ func TransformWebToSrc(filtersIn []*Filter, modelWeb interface{}, modelSrc mappe
 				return nil, err
 			}
 
-			relationRef, ok := webModelRef.FieldByName(relWebFieldName)
+			relationRef, ok := webModelRefType.FieldByName(relWebFieldName)
 			if !ok {
 				return nil, fmt.Errorf("cant find Relation name %v", filterRow.Relation)
 			}
@@ -178,7 +199,7 @@ func TransformWebToSrc(filtersIn []*Filter, modelWeb interface{}, modelSrc mappe
 
 		} else {
 
-			srcVal, srcFieldName, err := processAttrField(filterRow.Field, filterRow.Value, tagMapJSONAPI, webModelRef, modelSrcMaps)
+			srcVal, srcFieldName, err := processAttrField(filterRow.Field, filterRow.Value, tagMapJSONAPI, webModelRefType, modelSrcMaps)
 			if err != nil {
 				return nil, err
 			}
@@ -195,6 +216,75 @@ func TransformWebToSrc(filtersIn []*Filter, modelWeb interface{}, modelSrc mappe
 	}
 
 	return out, nil
+}
+
+func SetGormFilters(db *gorm.DB, model interface{}, filtersIn []*Filter) (*gorm.DB, error) {
+
+	if filtersIn == nil {
+		return db, nil
+	}
+
+	err := db.Statement.Parse(model)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, filter := range filtersIn {
+		dbFieldName := db.Statement.NamingStrategy.ColumnName("", filter.Field)
+		if filter.Relation != "" {
+			rel, ok := db.Statement.Schema.Relationships.Relations[filter.Relation]
+			if !ok {
+				return nil, errors.New("wrong filter")
+			}
+
+			var joinType string
+			//if filter.LogicalOperator == "AND" {
+			joinType = "JOIN"
+			//} else {
+			//	joinType = "LEFT JOIN"
+			//}
+
+			joinStr := fmt.Sprintf("%v %v on %v.%v = %v.%v and %v.%v %v ?",
+				joinType,
+				rel.FieldSchema.Table,
+				rel.FieldSchema.Table,
+				rel.References[0].PrimaryKey.DBName,
+				rel.Schema.Table,
+				rel.References[0].ForeignKey.DBName,
+				rel.FieldSchema.Table,
+				dbFieldName,
+				filter.CompareOperator,
+			)
+
+			db = db.Joins(joinStr, filter.Value)
+		} else {
+			whereStr := fmt.Sprintf("%v %v ?", dbFieldName, filter.CompareOperator) //TODO security? sql injection!
+			db = db.Where(whereStr, filter.Value)
+		}
+	}
+	return db, nil
+
+}
+
+func buildFieldsMapByTag(tagKey string, srcType reflect.Type) (map[string]string, error) {
+	src := srcType
+	if src.Kind() == reflect.Ptr {
+		src = srcType.Elem()
+	}
+	if src.Kind() != reflect.Struct {
+		return nil, fmt.Errorf("bad type")
+	}
+	fieldsByTag := make(map[string]string)
+
+	for i := 0; i < src.NumField(); i++ {
+		f := src.Field(i)
+		v := f.Tag.Get(tagKey) //strings.Split(f.Tag.Get(tagKey), ",")[0]
+		if v == "" || v == "-" {
+			continue
+		}
+		fieldsByTag[v] = f.Name
+	}
+	return fieldsByTag, nil
 }
 
 func processAttrField(filterName string, filterValue interface{}, tagMap map[string]string, modelRefType reflect.Type, modelSrcMaps []*mapper.ModelMapper) (srcValue interface{}, scrName string, errOut error) {
@@ -321,79 +411,6 @@ func setFilterVal(filt reflect.Value, fieldType reflect.Type, newVal string) err
 	}
 
 	return nil
-}
-
-func GetFiltersFromQueryString(queryStr string, modelWeb interface{}) ([]*Filter, error) {
-	if !strings.HasPrefix(queryStr, "filter=") {
-		return nil, nil
-	}
-	query := strings.TrimPrefix(queryStr, "filter=")
-
-	tagMap, err := buildFieldsMapByTag("jsonapi", reflect.TypeOf(modelWeb))
-	if err != nil {
-		return nil, err
-	}
-
-	filters := make([]*Filter, 0, 1)
-
-	partsOR := strings.Split(query, "||")
-	for indexOR, pOR := range partsOR {
-		partsAND := strings.Split(pOR, "&&")
-
-		filtersAND := make([]*Filter, 0, 1)
-		for indexAND, pAND := range partsAND {
-
-			fNew := &Filter{}
-
-			i := strings.Index(pAND, ".")
-			if i > 0 {
-				fNew.Relation = pAND[:i]
-				pAND = pAND[i+1:]
-			}
-
-			operator, operIndex := GetOperator(pAND)
-			if operIndex < 0 {
-				return nil, fmt.Errorf("Wrong query parameter - cant find operator in %v", pAND)
-			}
-			fNew.CompareOperator = operator
-
-			fNew.Field = pAND[:operIndex]
-			_, isRelation := tagMap[JSONAPIRelationTagPrefix+fNew.Field]
-			if isRelation {
-				fNew.Relation = fNew.Field
-				fNew.Field = JSONAPIIdFieldName
-			}
-
-			if fNew.CompareOperator == FilterOperatorIN {
-				valueRange := strings.Split(pAND[operIndex+len(operator):], ",")
-				fNew.Value = valueRange
-			} else {
-				fNew.Value = pAND[operIndex+len(operator):]
-			}
-
-			fNew.LogicalOperator = "AND"
-
-			//Clear last in parts
-			if indexAND == len(partsAND)-1 {
-				fNew.LogicalOperator = ""
-			}
-
-			filtersAND = append(filtersAND, fNew)
-		}
-
-		logicalOperOR := "OR"
-		if indexOR == len(partsOR)-1 {
-			logicalOperOR = ""
-		}
-		for indexAND, f := range filtersAND {
-			if indexAND == len(filtersAND)-1 {
-				f.LogicalOperator = logicalOperOR
-			}
-			filters = append(filters, f)
-		}
-	}
-
-	return filters, nil
 }
 
 func GetOperator(s string) (string, int) {

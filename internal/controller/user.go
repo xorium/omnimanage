@@ -85,12 +85,7 @@ func MarshalToResponse(model interface{}, w io.Writer) error {
 func (ctr *UserController) GetList(ctx echo.Context) error {
 	ctx.Response().Header().Set(echo.HeaderContentType, jsonapi.MediaType)
 
-	filters, err := filt.GetFiltersFromQueryString(ctx.Request().URL.RawQuery, omnimodels.User{})
-	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, errors.Wrap(err, "could not parse params"))
-	}
-
-	srcFilters, err := filt.TransformWebToSrc(filters, omnimodels.User{}, &model.User{})
+	srcFilters, err := filt.ParseFiltersFromQueryToSrcModel(ctx.Request().URL.RawQuery, &omnimodels.User{}, &model.User{})
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err)
 	}

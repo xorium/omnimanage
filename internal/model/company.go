@@ -22,7 +22,7 @@ func (m *Company) GetModelMapper() []*mapper.ModelMapper {
 			ConverterToSrc: func(web interface{}) (interface{}, error) {
 				w, ok := web.(string)
 				if !ok {
-					return nil, fmt.Errorf("Wrong type %s", web)
+					return nil, fmt.Errorf("ID: Wrong type. Value %v, type %T", web, web)
 				}
 				id, err := strconv.Atoi(w)
 				if err != nil {
@@ -33,7 +33,7 @@ func (m *Company) GetModelMapper() []*mapper.ModelMapper {
 			ConverterToWeb: func(src interface{}) (interface{}, error) {
 				s, ok := src.(int)
 				if !ok {
-					return nil, fmt.Errorf("Wrong type %s", src)
+					return nil, fmt.Errorf("ID: Wrong type. Value %v, type %T", src, src)
 				}
 				id := strconv.Itoa(s)
 				return id, nil
