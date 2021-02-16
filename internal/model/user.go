@@ -23,9 +23,11 @@ type User struct {
 	Company       *Company `gorm:"foreignKey:CompanyID"`
 	LocationID    int
 	Location      *Location       `gorm:"foreignKey:LocationID"`
-	Roles         []*Role         `gorm:"many2many:user_role;joinForeignKey:UsersID;JoinReferences:roles_id"`
+	Roles         Roles           `gorm:"many2many:user_role;joinForeignKey:UsersID;JoinReferences:roles_id"`
 	Subscriptions []*Subscription `gorm:"foreignKey:UserID"`
 }
+
+type Users []*User
 
 func (m *User) GetModelMapper() []*mapper.ModelMapper {
 	return []*mapper.ModelMapper{
@@ -69,7 +71,8 @@ func (m *User) GetModelMapper() []*mapper.ModelMapper {
 			},
 		},
 		&mapper.ModelMapper{SrcName: "Company", WebName: "Company"},
-		//&mapper.ModelMapper{SrcName: "Location", WebName: "Location"},
+		&mapper.ModelMapper{SrcName: "Location", WebName: "Location"},
+		&mapper.ModelMapper{SrcName: "Roles", WebName: "Roles"},
 	}
 }
 
@@ -102,12 +105,12 @@ func (m *User) ScanFromWeb(us *omnimodels.User) error {
 	return nil
 }
 
-func UsersToWeb(mSl []*User) ([]*omnimodels.User, error) {
-	if mSl == nil {
+func (m Users) ToWeb() ([]*omnimodels.User, error) {
+	if m == nil {
 		return nil, nil
 	}
 	omniM := make([]*omnimodels.User, 0, 5)
-	for _, u := range mSl {
+	for _, u := range m {
 		webUser, err := u.ToWeb()
 		if err != nil {
 			return nil, err

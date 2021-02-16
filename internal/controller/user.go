@@ -1,16 +1,14 @@
 package controller
 
 import (
-	"bytes"
-	"github.com/google/jsonapi"
 	"github.com/labstack/echo/v4"
 	"github.com/pkg/errors"
 	omnimodels "gitlab.omnicube.ru/libs/omnilib/models"
-	"io"
 	"net/http"
 	"omnimanage/internal/model"
 	"omnimanage/internal/store"
 	filt "omnimanage/pkg/filters"
+	httpUtils "omnimanage/pkg/utils/http"
 	"strconv"
 )
 
@@ -25,7 +23,6 @@ func NewUserController(store *store.Store) *UserController {
 
 // Get returns User
 func (ctr *UserController) GetOne(ctx echo.Context) error {
-	ctx.Response().Header().Set(echo.HeaderContentType, jsonapi.MediaType)
 
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
@@ -42,7 +39,7 @@ func (ctr *UserController) GetOne(ctx echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, err)
 	}
 
-	err = MarshalToResponse(webUser, ctx.Response())
+	err = httpUtils.MarshalToResponse(webUser, ctx.Response())
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err)
 	}
@@ -68,22 +65,7 @@ func (ctr *UserController) GetOne(ctx echo.Context) error {
 	return nil
 }
 
-func MarshalToResponse(model interface{}, w io.Writer) error {
-	var b bytes.Buffer
-	err := jsonapi.MarshalPayload(&b, model)
-	if err != nil {
-		return err
-	}
-
-	_, err = b.WriteTo(w)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
 func (ctr *UserController) GetList(ctx echo.Context) error {
-	ctx.Response().Header().Set(echo.HeaderContentType, jsonapi.MediaType)
 
 	srcFilters, err := filt.ParseFiltersFromQueryToSrcModel(ctx.Request().URL.RawQuery, &omnimodels.User{}, &model.User{})
 	if err != nil {
@@ -95,12 +77,12 @@ func (ctr *UserController) GetList(ctx echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, err)
 	}
 
-	webUsers, err := model.UsersToWeb(users)
+	webUsers, err := users.ToWeb()
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err)
 	}
 
-	err = MarshalToResponse(webUsers, ctx.Response())
+	err = httpUtils.MarshalToResponse(webUsers, ctx.Response())
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err)
 	}
@@ -109,7 +91,6 @@ func (ctr *UserController) GetList(ctx echo.Context) error {
 }
 
 func (ctr *UserController) GetRelation(ctx echo.Context) error {
-	ctx.Response().Header().Set(echo.HeaderContentType, jsonapi.MediaType)
 
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
@@ -129,8 +110,11 @@ func (ctr *UserController) GetRelation(ctx echo.Context) error {
 		if err != nil {
 			return echo.NewHTTPError(http.StatusBadRequest, err)
 		}
-
-		err = MarshalToResponse(loc.ToWeb(), ctx.Response())
+		web, err := loc.ToWeb()
+		if err != nil {
+			return echo.NewHTTPError(http.StatusBadRequest, err)
+		}
+		err = httpUtils.MarshalToResponse(web, ctx.Response())
 		if err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError, err)
 		}

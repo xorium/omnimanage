@@ -6,7 +6,11 @@ func TestUser_ToWeb(t *testing.T) {
 	userDb := User{
 		ID:       23,
 		UserName: "name1",
-		Company:  &Company{ID: 2, Name: "Sespel"},
+		Settings: []byte("{}"),
+		Roles: []*Role{
+			&Role{ID: 1, Name: "Name1", Info: []byte("{}")},
+			&Role{ID: 2, Name: "Name2", Info: []byte("{}")},
+		},
 	}
 
 	userOmni, err := userDb.ToWeb()

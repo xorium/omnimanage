@@ -6,7 +6,10 @@ import (
 	"reflect"
 )
 
-const MethodNameToWeb = "ToWeb"
+const (
+	MethodNameToWeb       = "ToWeb"
+	MethodNameModelMapper = "GetModelMapper"
+)
 
 type ModelMapper struct {
 	SrcName        string
@@ -59,27 +62,29 @@ func ConvertSrcToWeb(src ISrcModel, web interface{}) (errOut error) {
 			return fmt.Errorf("unknown src field %v", val.SrcName)
 		}
 
-		webField := webS.Field(val.WebName)
+		webField, ok := webS.FieldOk(val.WebName)
+		if !ok {
+			return fmt.Errorf("unknown web field %v", val.WebName)
+		}
 
 		if val.ConverterToWeb == nil { // no converter function -> simple conversion
-			//Relation
 			typeKind := webField.Kind()
-			if typeKind == reflect.Ptr {
+
+			// Relation
+			if typeKind == reflect.Ptr || typeKind == reflect.Slice {
 				srcField := srcS.Field(val.SrcName)
 				if srcField.IsZero() {
 					continue
 				}
 				resInv, err := CallMethodWith2Output(srcField.Value(), MethodNameToWeb)
 				if err != nil {
-					return fmt.Errorf("Error in converting %v", val.SrcName)
+					return fmt.Errorf("Error in converting %v : %v", val.SrcName, err)
 				}
 				err = webField.Set(resInv.Interface())
 				if err != nil {
 					return fmt.Errorf("Error in converting %v: %v", val.SrcName, err)
 				}
-			} else if typeKind == reflect.Slice {
-				//....
-			} else { //Simple Attribute
+			} else { // Simple Attribute
 				err := webField.Set(srcFieldValue)
 				if err != nil {
 					return fmt.Errorf("Error in converting %v: %v", val.SrcName, err)
@@ -103,8 +108,17 @@ func ConvertSrcToWeb(src ISrcModel, web interface{}) (errOut error) {
 }
 
 // CallMethodWith2Output calls method of structure Any. Must be 2 output params - result value and error
-func CallMethodWith2Output(any interface{}, name string, args ...interface{}) (reflect.Value, error) {
+func CallMethodWith2Output(any interface{}, name string, args ...interface{}) (out reflect.Value, errOut error) {
+	defer func() {
+		if r := recover(); r != nil {
+			errOut = fmt.Errorf("panic: %v", r)
+		}
+	}()
+
 	method := reflect.ValueOf(any).MethodByName(name)
+	if !method.IsValid() {
+		return reflect.ValueOf(nil), fmt.Errorf("Method %v not exists", name)
+	}
 	methodType := method.Type()
 	numIn := methodType.NumIn()
 	if numIn > len(args) {
@@ -141,4 +155,26 @@ func CallMethodWith2Output(any interface{}, name string, args ...interface{}) (r
 		return reflect.ValueOf(nil), err
 	}
 	return results[0], nil
+}
+
+func GetMapperDynamic(t reflect.Type) (out []*ModelMapper, errOut error) {
+	defer func() {
+		if r := recover(); r != nil {
+			errOut = fmt.Errorf("panic: %v", r)
+		}
+	}()
+
+	ptr := reflect.New(t)
+
+	method := ptr.Elem().MethodByName(MethodNameModelMapper)
+	if !method.IsValid() {
+		return nil, fmt.Errorf("Method %v not exists", MethodNameModelMapper)
+	}
+
+	results := method.Call([]reflect.Value{})
+	maps, ok := results[0].Interface().([]*ModelMapper)
+	if !ok {
+		return nil, fmt.Errorf("Internal error in method %v", MethodNameModelMapper)
+	}
+	return maps, nil
 }

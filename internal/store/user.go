@@ -26,7 +26,7 @@ func (r *UserRepo) GetOne(ctx context.Context, id int) (*model.User, error) {
 	return rec, nil
 }
 
-func (r *UserRepo) GetList(ctx context.Context, f []*filters.Filter) ([]*model.User, error) {
+func (r *UserRepo) GetList(ctx context.Context, f []*filters.Filter) (model.Users, error) {
 	users := make([]*model.User, 0, 1)
 
 	db := r.db.Debug().WithContext(ctx)

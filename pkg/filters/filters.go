@@ -3,22 +3,23 @@ package filters
 import (
 	"errors"
 	"fmt"
-	"github.com/fatih/structs"
 	"gorm.io/gorm"
+	"gorm.io/gorm/schema"
 	"omnimanage/pkg/mapper"
 	"reflect"
+	"regexp"
 	"strconv"
 	"strings"
 )
 
-//var queryFilterRegex = regexp.MustCompile(`^filters\[(\w+)\]$`)
+var queryFilterRegex = regexp.MustCompile(`^filter\[(.*)\]\[(.*)\]=(.*)$`) //MustCompile(`^filters\[(\w+)\]$`)
 
 type Filter struct {
 	Relation        string
 	Field           string
 	CompareOperator string
 	Value           interface{}
-	LogicalOperator string
+	//LogicalOperator string
 }
 
 const (
@@ -28,8 +29,18 @@ const (
 )
 
 const (
-	FilterOperatorIN = "IN"
+	FilterOperatorIN = "in"
 )
+
+var OperatorsMap = map[string]string{
+	"eq": "=",
+	"ne": "<>",
+	"gt": ">",
+	"ge": ">=",
+	"lt": "<",
+	"le": "<",
+	"in": "in",
+}
 
 func ParseFiltersFromQueryToSrcModel(queryStr string, modelWeb interface{}, modelSrc mapper.ISrcModel) ([]*Filter, error) {
 	filtersStrings, err := GetFiltersFromQueryString(queryStr, modelWeb)
@@ -46,10 +57,7 @@ func ParseFiltersFromQueryToSrcModel(queryStr string, modelWeb interface{}, mode
 }
 
 func GetFiltersFromQueryString(queryStr string, modelWeb interface{}) ([]*Filter, error) {
-	if !strings.HasPrefix(queryStr, "filter=") {
-		return nil, nil
-	}
-	query := strings.TrimPrefix(queryStr, "filter=")
+	parts := strings.Split(queryStr, "&")
 
 	tagMap, err := buildFieldsMapByTag("jsonapi", reflect.TypeOf(modelWeb))
 	if err != nil {
@@ -57,65 +65,115 @@ func GetFiltersFromQueryString(queryStr string, modelWeb interface{}) ([]*Filter
 	}
 
 	filters := make([]*Filter, 0, 1)
+	for _, p := range parts {
+		regRes := queryFilterRegex.FindStringSubmatch(p)
+		if len(regRes) == 0 {
+			continue
+		}
+		fNew := &Filter{}
 
-	partsOR := strings.Split(query, "||")
-	for indexOR, pOR := range partsOR {
-		partsAND := strings.Split(pOR, "&&")
-
-		filtersAND := make([]*Filter, 0, 1)
-		for indexAND, pAND := range partsAND {
-
-			fNew := &Filter{}
-
-			i := strings.Index(pAND, ".")
-			if i > 0 {
-				fNew.Relation = pAND[:i]
-				pAND = pAND[i+1:]
-			}
-
-			operator, operIndex := GetOperator(pAND)
-			if operIndex < 0 {
-				return nil, fmt.Errorf("Wrong query parameter - cant find operator in %v", pAND)
-			}
-			fNew.CompareOperator = operator
-
-			fNew.Field = pAND[:operIndex]
-			_, isRelation := tagMap[JSONAPIRelationTagPrefix+fNew.Field]
-			if isRelation {
-				fNew.Relation = fNew.Field
-				fNew.Field = JSONAPIIdFieldName
-			}
-
-			if fNew.CompareOperator == FilterOperatorIN {
-				valueRange := strings.Split(pAND[operIndex+len(operator):], ",")
-				fNew.Value = valueRange
-			} else {
-				fNew.Value = pAND[operIndex+len(operator):]
-			}
-
-			fNew.LogicalOperator = "AND"
-
-			//Clear last in parts
-			if indexAND == len(partsAND)-1 {
-				fNew.LogicalOperator = ""
-			}
-
-			filtersAND = append(filtersAND, fNew)
+		fieldParts := strings.Split(regRes[1], ".")
+		switch len(fieldParts) {
+		case 1:
+			fNew.Field = regRes[1]
+		case 2:
+			fNew.Relation = fieldParts[0]
+			fNew.Field = fieldParts[1]
+		default:
+			return nil, fmt.Errorf("Wrong filter query: %v", p)
 		}
 
-		logicalOperOR := "OR"
-		if indexOR == len(partsOR)-1 {
-			logicalOperOR = ""
+		// only Relation
+		_, isRelation := tagMap[JSONAPIRelationTagPrefix+fNew.Field]
+		if isRelation {
+			fNew.Relation = fNew.Field
+			fNew.Field = JSONAPIIdFieldName
 		}
-		for indexAND, f := range filtersAND {
-			if indexAND == len(filtersAND)-1 {
-				f.LogicalOperator = logicalOperOR
-			}
-			filters = append(filters, f)
+
+		var ok bool
+		fNew.CompareOperator, ok = OperatorsMap[regRes[2]]
+		if !ok {
+			return nil, fmt.Errorf("Wrong filter query: uknown operator %v", regRes[2])
 		}
+
+		if fNew.CompareOperator == FilterOperatorIN {
+			valueRange := strings.Split(regRes[3], ",")
+			fNew.Value = valueRange
+		} else {
+			fNew.Value = regRes[3]
+		}
+
+		filters = append(filters, fNew)
 	}
-
+	if len(filters) == 0 {
+		return nil, nil
+	}
 	return filters, nil
+
+	//if !strings.HasPrefix(queryStr, "filter=") {
+	//	return nil, nil
+	//}
+	//query := strings.TrimPrefix(queryStr, "filter=")
+	//
+	//tagMap, err := buildFieldsMapByTag("jsonapi", reflect.TypeOf(modelWeb))
+	//if err != nil {
+	//	return nil, err
+	//}
+	//
+	//filters := make([]*Filter, 0, 1)
+	//
+	//partsOR := strings.Split(query, "||")
+	//for indexOR, pOR := range partsOR {
+	//	partsAND := strings.Split(pOR, "&&")
+	//
+	//	filtersAND := make([]*Filter, 0, 1)
+	//	for indexAND, pAND := range partsAND {
+	//
+	//		fNew := &Filter{}
+	//
+	//		i := strings.Index(pAND, ".")
+	//		if i > 0 {
+	//			fNew.Relation = pAND[:i]
+	//			pAND = pAND[i+1:]
+	//		}
+	//
+	//		operator, operIndex := GetOperator(pAND)
+	//		if operIndex < 0 {
+	//			return nil, fmt.Errorf("Wrong query parameter - cant find operator in %v", pAND)
+	//		}
+	//		fNew.CompareOperator = operator
+	//
+	//		fNew.Field = pAND[:operIndex]
+	//		_, isRelation := tagMap[JSONAPIRelationTagPrefix+fNew.Field]
+	//		if isRelation {
+	//			fNew.Relation = fNew.Field
+	//			fNew.Field = JSONAPIIdFieldName
+	//		}
+	//
+	//		if fNew.CompareOperator == FilterOperatorIN {
+	//			valueRange := strings.Split(pAND[operIndex+len(operator):], ",")
+	//			fNew.Value = valueRange
+	//		} else {
+	//			fNew.Value = pAND[operIndex+len(operator):]
+	//		}
+	//
+	//
+	//		filtersAND = append(filtersAND, fNew)
+	//	}
+	//
+	//	logicalOperOR := "OR"
+	//	if indexOR == len(partsOR)-1 {
+	//		logicalOperOR = ""
+	//	}
+	//	for indexAND, f := range filtersAND {
+	//		if indexAND == len(filtersAND)-1 {
+	//			f.LogicalOperator = logicalOperOR
+	//		}
+	//		filters = append(filters, f)
+	//	}
+	//}
+
+	//return filters, nil
 }
 
 func TransformWebToSrc(filtersIn []*Filter, modelWeb interface{}, modelSrc mapper.ISrcModel) (out []*Filter, errOut error) {
@@ -141,8 +199,8 @@ func TransformWebToSrc(filtersIn []*Filter, modelWeb interface{}, modelSrc mappe
 		return nil, err
 	}
 
-	srcStruct := structs.New(modelSrc)
-	srcStructMap := srcStruct.Map()
+	//srcStruct := structs.New(modelSrc)
+	//srcStructMap := srcStruct.Map()
 
 	modelSrcMaps := modelSrc.GetModelMapper()
 
@@ -160,7 +218,14 @@ func TransformWebToSrc(filtersIn []*Filter, modelWeb interface{}, modelSrc mappe
 				return nil, fmt.Errorf("cant find Relation name %v", filterRow.Relation)
 			}
 
-			relTagMapJSONAPI, err := buildFieldsMapByTag("jsonapi", relationRef.Type)
+			var relRefType reflect.Type
+			if relationRef.Type.Kind() == reflect.Slice {
+				relRefType = relationRef.Type.Elem()
+			} else {
+				relRefType = relationRef.Type
+			}
+
+			relTagMapJSONAPI, err := buildFieldsMapByTag("jsonapi", relRefType)
 			if err != nil {
 				return nil, err
 			}
@@ -171,20 +236,46 @@ func TransformWebToSrc(filtersIn []*Filter, modelWeb interface{}, modelSrc mappe
 				return nil, fmt.Errorf("Cannot find map for field %v", relWebFieldName)
 			}
 
-			srcRelModel, ok := srcStructMap[modelRelFieldMapper.SrcName]
+			srcRefModel, ok := reflect.TypeOf(modelSrc).Elem().FieldByName(modelRelFieldMapper.SrcName)
 			if !ok {
 				return nil, fmt.Errorf("Cannot find map for field %v", relWebFieldName)
 			}
 
-			srcModel, ok := srcRelModel.(mapper.ISrcModel)
-			if !ok {
-				return nil, fmt.Errorf("Cannot find map for field %v", relWebFieldName)
+			var srcRefType reflect.Type
+			if srcRefModel.Type.Kind() == reflect.Slice {
+				srcRefType = srcRefModel.Type.Elem()
+			} else {
+				srcRefType = srcRefModel.Type
 			}
 
-			modelSrcRelMaps := srcModel.GetModelMapper()
+			modelSrcRelMaps, err := mapper.GetMapperDynamic(srcRefType)
+			if err != nil {
+				return nil, fmt.Errorf("Field %v: %v", modelRelFieldMapper.SrcName, err)
+			}
+			//srcRelModel, ok := srcStructMap[modelRelFieldMapper.SrcName]
+			//if !ok {
+			//	return nil, fmt.Errorf("Cannot find map for field %v", relWebFieldName)
+			//}
+			//
+			//var srcModel mapper.ISrcModel
+			//if reflect.TypeOf(srcRelModel).Kind() == reflect.Slice {
+			//	srcModels, ok := srcRelModel.([]*mapper.ISrcModel)
+			//	if !ok {
+			//		return nil, fmt.Errorf("Cannot find map for field %v", relWebFieldName)
+			//	}
+			//	srcModels = append(srcModels, nil)
+			//	srcModel = *srcModels[0]
+			//} else {
+			//	srcModel, ok = srcRelModel.(mapper.ISrcModel)
+			//	if !ok {
+			//		return nil, fmt.Errorf("Cannot find map for field %v", relWebFieldName)
+			//	}
+			//}
+			//
+			//modelSrcRelMaps := srcModel.GetModelMapper()
 
 			//process attr field
-			srcVal, srcFieldName, err := processAttrField(filterRow.Field, filterRow.Value, relTagMapJSONAPI, relationRef.Type.Elem(), modelSrcRelMaps)
+			srcVal, srcFieldName, err := processAttrField(filterRow.Field, filterRow.Value, relTagMapJSONAPI, relRefType.Elem(), modelSrcRelMaps)
 			if err != nil {
 				return nil, err
 			}
@@ -192,9 +283,9 @@ func TransformWebToSrc(filtersIn []*Filter, modelWeb interface{}, modelSrc mappe
 			newFilterRow = &Filter{
 				Relation:        modelRelFieldMapper.SrcName,
 				CompareOperator: filterRow.CompareOperator,
-				LogicalOperator: filterRow.LogicalOperator,
-				Field:           srcFieldName,
-				Value:           srcVal,
+				//LogicalOperator: filterRow.LogicalOperator,
+				Field: srcFieldName,
+				Value: srcVal,
 			}
 
 		} else {
@@ -206,9 +297,9 @@ func TransformWebToSrc(filtersIn []*Filter, modelWeb interface{}, modelSrc mappe
 
 			newFilterRow = &Filter{
 				CompareOperator: filterRow.CompareOperator,
-				LogicalOperator: filterRow.LogicalOperator,
-				Field:           srcFieldName,
-				Value:           srcVal,
+				//LogicalOperator: filterRow.LogicalOperator,
+				Field: srcFieldName,
+				Value: srcVal,
 			}
 		}
 
@@ -237,24 +328,50 @@ func SetGormFilters(db *gorm.DB, model interface{}, filtersIn []*Filter) (*gorm.
 				return nil, errors.New("wrong filter")
 			}
 
-			var joinType string
-			//if filter.LogicalOperator == "AND" {
-			joinType = "JOIN"
-			//} else {
-			//	joinType = "LEFT JOIN"
-			//}
+			var joinStr string
+			if rel.JoinTable == nil { // 1 to 1 relation
+				joinStr = fmt.Sprintf(`
+					JOIN %v 
+						on %v.%v = %v.%v 
+					AND %v.%v %v ?`,
 
-			joinStr := fmt.Sprintf("%v %v on %v.%v = %v.%v and %v.%v %v ?",
-				joinType,
-				rel.FieldSchema.Table,
-				rel.FieldSchema.Table,
-				rel.References[0].PrimaryKey.DBName,
-				rel.Schema.Table,
-				rel.References[0].ForeignKey.DBName,
-				rel.FieldSchema.Table,
-				dbFieldName,
-				filter.CompareOperator,
-			)
+					rel.FieldSchema.Table,
+					rel.FieldSchema.Table,
+					rel.References[0].PrimaryKey.DBName,
+					rel.Schema.Table,
+					rel.References[0].ForeignKey.DBName,
+					rel.FieldSchema.Table,
+					dbFieldName,
+					filter.CompareOperator,
+				)
+			} else { // many to many relation
+				// join with main table
+				joinPart1, err := GetJoinConditionFromJoinTable(rel.JoinTable, rel.Schema.Table)
+				if err != nil {
+					return nil, err
+				}
+				joinPart1 = fmt.Sprintf("JOIN %v %v", rel.JoinTable.Table, joinPart1)
+
+				// join with relation table
+				joinPart2, err := GetJoinConditionFromJoinTable(rel.JoinTable, rel.FieldSchema.Table)
+				if err != nil {
+					return nil, err
+				}
+				joinPart2 = fmt.Sprintf("JOIN %v %v", rel.FieldSchema.Table, joinPart2)
+
+				// total join
+				joinStr = fmt.Sprintf(`
+					%v
+					%v
+					AND %v.%v %v ?`,
+					joinPart1,
+					joinPart2,
+					rel.FieldSchema.Table,
+					dbFieldName,
+					filter.CompareOperator,
+				)
+
+			}
 
 			db = db.Joins(joinStr, filter.Value)
 		} else {
@@ -264,6 +381,34 @@ func SetGormFilters(db *gorm.DB, model interface{}, filtersIn []*Filter) (*gorm.
 	}
 	return db, nil
 
+}
+
+func GetJoinConditionFromJoinTable(joinTable *schema.Schema, tableName string) (string, error) {
+
+	relTab := getRelationByTableName(tableName, joinTable.Relationships.Relations)
+	if relTab == nil {
+		return "", fmt.Errorf("Relation to %v not found", tableName)
+	}
+	joinTabField := relTab.References[0].ForeignKey.DBName
+
+	joinStr := fmt.Sprintf("ON %v.%v = %v.%v",
+		joinTable.Table,
+		joinTabField,
+		tableName,
+		relTab.References[0].PrimaryKey.DBName,
+	)
+
+	return joinStr, nil
+}
+
+func getRelationByTableName(tableName string, relations map[string]*schema.Relationship) *schema.Relationship {
+	for _, rel := range relations {
+		if rel.FieldSchema.Table == tableName {
+			return rel
+		}
+	}
+
+	return nil
 }
 
 func buildFieldsMapByTag(tagKey string, srcType reflect.Type) (map[string]string, error) {

@@ -9,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	"omnimanage/internal/controller"
+	"omnimanage/internal/middleware"
 	"omnimanage/internal/store"
 	"omnimanage/internal/validator"
 	"os"
@@ -52,13 +53,14 @@ func run() error {
 	//e.HTTPErrorHandler =
 
 	// Middleware
+	e.Use(middleware.ResponseType)
 	//e.Use(middleware.Logger()) e.Use(middleware.Recover())
 
 	// Controllers
 	cntrManager := controller.NewManager(store)
 
 	// Routes
-
+	e.Use()
 	// Common grp
 	companyGrp := e.Group("/companies/:idComp")
 

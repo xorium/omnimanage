@@ -12,7 +12,9 @@ func JSONSrcToWeb(src interface{}) (map[string]interface{}, error) {
 	if !ok {
 		return nil, fmt.Errorf("Wrong type '%T'", src)
 	}
-
+	if len(s) == 0 {
+		s = []byte("{}")
+	}
 	w := map[string]interface{}{}
 	err := json.Unmarshal(s, &w)
 	if err != nil {

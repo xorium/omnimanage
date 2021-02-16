@@ -9,7 +9,7 @@ import (
 
 type Users interface {
 	GetOne(ctx context.Context, id int) (*model.User, error)
-	GetList(ctx context.Context, f []*filters.Filter) ([]*model.User, error)
+	GetList(ctx context.Context, f []*filters.Filter) (model.Users, error)
 }
 
 type Locations interface {
