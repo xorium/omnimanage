@@ -9,6 +9,7 @@ import (
 
 const (
 	MethodNameToWeb       = "ToWeb"
+	MethodNameScanFromWeb = "ScanFromWeb"
 	MethodNameModelMapper = "GetModelMapper"
 )
 
@@ -63,6 +64,74 @@ func GetModelMapByWebName(name string, m []*ModelMapper) *ModelMapper {
 		if val.WebName == name {
 			return val
 		}
+	}
+	return nil
+}
+
+func ConvertWebToSrc(web interface{}, src ISrcModel) (errOut error) {
+	defer func() {
+		if r := recover(); r != nil {
+			errOut = fmt.Errorf("panic: %v", r)
+		}
+	}()
+
+	srcS := structs.New(src)
+	webS := structs.New(web)
+	webM := webS.Map()
+
+	modelMaps := src.GetModelMapper()
+	for _, val := range modelMaps {
+		if val.SrcName == "" {
+			continue
+		}
+
+		webFieldValue, ok := webM[val.WebName]
+		if !ok {
+			return fmt.Errorf("unknown web field %v", val.WebName)
+		}
+
+		srcField, ok := srcS.FieldOk(val.SrcName)
+		if !ok {
+			return fmt.Errorf("unknown src field %v", val.SrcName)
+		}
+
+		if val.ConverterToSrc == nil { // no converter function -> simple conversion
+			typeKind := srcField.Kind()
+
+			// Relation
+			if typeKind == reflect.Ptr || typeKind == reflect.Slice {
+				webField := webS.Field(val.WebName)
+				if webField.IsZero() {
+					continue
+				}
+
+				resInv, err := CallMethodWith2Output(srcField.Value(), MethodNameScanFromWeb, webField.Value())
+				if err != nil {
+					return fmt.Errorf("Error in converting %v : %v", val.WebName, err)
+				}
+				err = srcField.Set(resInv.Interface())
+				if err != nil {
+					return fmt.Errorf("Error in converting %v: %v", val.WebName, err)
+				}
+			} else { // Simple Attribute
+				err := srcField.Set(webFieldValue)
+				if err != nil {
+					return fmt.Errorf("Error in converting %v: %v", val.WebName, err)
+				}
+			}
+			continue
+		}
+
+		if val.ConverterToSrc != nil { //with converter function
+			field, err := val.ConverterToSrc(webFieldValue)
+			if err != nil {
+				return err
+			}
+			srcField.Set(field)
+			continue
+		}
+
+		return fmt.Errorf("wrong mapper line %v", val)
 	}
 	return nil
 }

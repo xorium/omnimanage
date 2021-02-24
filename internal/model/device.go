@@ -20,8 +20,8 @@ type Device struct {
 	Image       string
 	CompanyID   int
 	Company     *Company `gorm:"foreignKey:CompanyID"`
-	ModelId     int
-	DeviceModel *DeviceModel `gorm:"foreignkey:ModelID"`
+	ModelID     int
+	Model       *DeviceModel `gorm:"foreignkey:ModelID"`
 	LocationID  int
 	Location    *Location    `gorm:"foreignKey:LocationID"`
 	Groups      DeviceGroups `gorm:"many2many:device_group;joinForeignKey:DevicesID;JoinReferences:groups_id"`
@@ -72,7 +72,7 @@ func (m *Device) GetModelMapper() []*mapper.ModelMapper {
 		},
 		&mapper.ModelMapper{SrcName: "Image", WebName: "Image"},
 		&mapper.ModelMapper{SrcName: "Company", WebName: "Company"},
-		&mapper.ModelMapper{SrcName: "DeviceModel", WebName: "Model"},
+		&mapper.ModelMapper{SrcName: "Model", WebName: "Model"},
 		&mapper.ModelMapper{SrcName: "Location", WebName: "Location"},
 		&mapper.ModelMapper{SrcName: "Parent", WebName: "Parent"},
 		&mapper.ModelMapper{SrcName: "Rules", WebName: "Rules"},
@@ -201,6 +201,10 @@ type DeviceModel struct {
 }
 
 type DeviceModels []*DeviceModel
+
+func (DeviceModel) TableName() string {
+	return "device_models"
+}
 
 func (m *DeviceModel) GetModelMapper() []*mapper.ModelMapper {
 	return []*mapper.ModelMapper{

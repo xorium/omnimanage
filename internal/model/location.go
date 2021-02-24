@@ -75,11 +75,21 @@ func (m *Location) ToWeb() (*omnimodels.Location, error) {
 	return web, nil
 }
 
+func (*Location) ScanFromWeb(web *omnimodels.Location) (*Location, error) {
+	m := new(Location)
+	err := mapper.ConvertWebToSrc(web, m)
+	if err != nil {
+		return m, err
+	}
+
+	return m, nil
+}
+
 func (m Locations) ToWeb() ([]*omnimodels.Location, error) {
 	if m == nil {
 		return nil, nil
 	}
-	omniM := make([]*omnimodels.Location, 0, 5)
+	omniM := make([]*omnimodels.Location, 0, len(m))
 	for _, u := range m {
 		webU, err := u.ToWeb()
 		if err != nil {

@@ -11,18 +11,18 @@ import (
 	"omnimanage/pkg/filters"
 )
 
-type UserRepo struct {
+type RoleRepo struct {
 	db *gorm.DB
 }
 
-func NewUserRepo(db *gorm.DB) *UserRepo {
-	return &UserRepo{db: db}
+func NewRoleRepo(db *gorm.DB) *RoleRepo {
+	return &RoleRepo{db: db}
 }
 
-func (r *UserRepo) GetOne(ctx context.Context, id int) (*model.User, error) {
+func (r *RoleRepo) GetOne(ctx context.Context, id int) (*model.Role, error) {
 	db := r.db.Debug().WithContext(ctx)
 
-	rec := new(model.User)
+	rec := new(model.Role)
 	dbResult := db.Where("id = ?", id).Preload(clause.Associations).First(rec)
 	if errors.Is(dbResult.Error, gorm.ErrRecordNotFound) {
 		return nil, omnierror.ErrResourceNotFound
@@ -33,8 +33,8 @@ func (r *UserRepo) GetOne(ctx context.Context, id int) (*model.User, error) {
 	return rec, nil
 }
 
-func (r *UserRepo) GetList(ctx context.Context, f []*filters.Filter) (model.Users, error) {
-	res := make([]*model.User, 0, 1)
+func (r *RoleRepo) GetList(ctx context.Context, f []*filters.Filter) (model.Roles, error) {
+	res := make([]*model.Role, 0, 1)
 
 	db := r.db.Debug().WithContext(ctx)
 	db, err := filters.SetGormFilters(db, &res, f)
@@ -54,11 +54,11 @@ func (r *UserRepo) GetList(ctx context.Context, f []*filters.Filter) (model.User
 	return res, nil
 }
 
-func (r *UserRepo) Create(ctx context.Context, modelIn *model.User) (*model.User, error) {
+func (r *RoleRepo) Create(ctx context.Context, modelIn *model.Role) (*model.Role, error) {
 
 	db := r.db.Debug().WithContext(ctx)
 
-	tmpRec := new(model.User)
+	tmpRec := new(model.Role)
 	dbResult := db.Where("id = ?", modelIn.ID).First(tmpRec)
 	if dbResult.Error != nil && !errors.Is(dbResult.Error, gorm.ErrRecordNotFound) {
 		return nil, fmt.Errorf("%w %v", omnierror.ErrInternal, dbResult.Error)
@@ -75,10 +75,10 @@ func (r *UserRepo) Create(ctx context.Context, modelIn *model.User) (*model.User
 	return modelIn, nil
 }
 
-func (r *UserRepo) Update(ctx context.Context, modelIn *model.User) (*model.User, error) {
+func (r *RoleRepo) Update(ctx context.Context, modelIn *model.Role) (*model.Role, error) {
 	db := r.db.Debug().WithContext(ctx)
 
-	tmpRec := new(model.User)
+	tmpRec := new(model.Role)
 	dbResult := db.Where("id = ?", modelIn.ID).First(tmpRec)
 	if errors.Is(dbResult.Error, gorm.ErrRecordNotFound) {
 		return nil, omnierror.ErrResourceNotFound

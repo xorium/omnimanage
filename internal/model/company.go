@@ -53,3 +53,13 @@ func (m *Company) ToWeb() (*omnimodels.Company, error) {
 
 	return web, nil
 }
+
+func (*Company) ScanFromWeb(web *omnimodels.Company) (*Company, error) {
+	m := new(Company)
+	err := mapper.ConvertWebToSrc(web, m)
+	if err != nil {
+		return m, err
+	}
+
+	return m, nil
+}

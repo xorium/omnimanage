@@ -74,12 +74,22 @@ func (m *Role) ToWeb() (*omnimodels.Role, error) {
 	return web, nil
 }
 
+func (*Role) ScanFromWeb(web *omnimodels.Role) (*Role, error) {
+	m := new(Role)
+	err := mapper.ConvertWebToSrc(web, m)
+	if err != nil {
+		return m, err
+	}
+
+	return m, nil
+}
+
 func (m Roles) ToWeb() ([]*omnimodels.Role, error) {
 	if m == nil {
 		return nil, nil
 	}
 
-	omniM := make([]*omnimodels.Role, 0, 5)
+	omniM := make([]*omnimodels.Role, 0, len(m))
 	for _, u := range m {
 		webUser, err := u.ToWeb()
 		if err != nil {
@@ -88,4 +98,21 @@ func (m Roles) ToWeb() ([]*omnimodels.Role, error) {
 		omniM = append(omniM, webUser)
 	}
 	return omniM, nil
+}
+
+func (m Roles) ScanFromWeb(web []*omnimodels.Role) (Roles, error) {
+	if len(web) == 0 {
+		return nil, nil
+	}
+
+	srcPoint := new(Role)
+	res := make(Roles, 0, len(web))
+	for _, u := range web {
+		srcRec, err := srcPoint.ScanFromWeb(u)
+		if err != nil {
+			return nil, err
+		}
+		res = append(res, srcRec)
+	}
+	return res, nil
 }

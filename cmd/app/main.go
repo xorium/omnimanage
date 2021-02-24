@@ -76,6 +76,8 @@ func run() error {
 	userRoutes.GET("", cntrManager.User.GetList)
 	userRoutes.GET("/:id", cntrManager.User.GetOne)
 	userRoutes.GET("/:id/relationships/:rel", cntrManager.User.GetRelation)
+	userRoutes.POST("/", cntrManager.User.Create)
+	userRoutes.PATCH("/:id", cntrManager.User.Update)
 
 	// Start Server
 	s := &http.Server{
@@ -99,16 +101,6 @@ func run() error {
 	if err := e.Shutdown(ctx); err != nil {
 		e.Logger.Fatal(err)
 	}
-
-	//graceful.ListenAndServe()
-	//us, err := store.Users.GetById(ctx, 1413)
-	//if err != nil {
-	//	return err
-	//}
-	//us.FirstName = "AAA"
-	//db.Debug().WithContext(ctx).Save(&us)
-	//
-	//fmt.Printf("user: %v", us)
 
 	return nil
 }

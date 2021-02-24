@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"gorm.io/gorm"
 	"gorm.io/gorm/schema"
+	omniErr "omnimanage/pkg/error"
 	"omnimanage/pkg/mapper"
 	"reflect"
 	"regexp"
@@ -38,10 +39,11 @@ var OperatorsMap = map[string]string{
 	"gt": ">",
 	"ge": ">=",
 	"lt": "<",
-	"le": "<",
+	"le": "<=",
 	"in": "in",
 }
 
+// filter schema: filter[relation.relation_field][operator]=value
 func ParseFiltersFromQueryToSrcModel(queryStr string, modelWeb interface{}, modelSrc mapper.ISrcModel) ([]*Filter, error) {
 	filtersStrings, err := GetFiltersFromQueryString(queryStr, modelWeb)
 	if err != nil {
@@ -110,70 +112,6 @@ func GetFiltersFromQueryString(queryStr string, modelWeb interface{}) ([]*Filter
 	}
 	return filters, nil
 
-	//if !strings.HasPrefix(queryStr, "filter=") {
-	//	return nil, nil
-	//}
-	//query := strings.TrimPrefix(queryStr, "filter=")
-	//
-	//tagMap, err := buildFieldsMapByTag("jsonapi", reflect.TypeOf(modelWeb))
-	//if err != nil {
-	//	return nil, err
-	//}
-	//
-	//filters := make([]*Filter, 0, 1)
-	//
-	//partsOR := strings.Split(query, "||")
-	//for indexOR, pOR := range partsOR {
-	//	partsAND := strings.Split(pOR, "&&")
-	//
-	//	filtersAND := make([]*Filter, 0, 1)
-	//	for indexAND, pAND := range partsAND {
-	//
-	//		fNew := &Filter{}
-	//
-	//		i := strings.Index(pAND, ".")
-	//		if i > 0 {
-	//			fNew.Relation = pAND[:i]
-	//			pAND = pAND[i+1:]
-	//		}
-	//
-	//		operator, operIndex := GetOperator(pAND)
-	//		if operIndex < 0 {
-	//			return nil, fmt.Errorf("Wrong query parameter - cant find operator in %v", pAND)
-	//		}
-	//		fNew.CompareOperator = operator
-	//
-	//		fNew.Field = pAND[:operIndex]
-	//		_, isRelation := tagMap[JSONAPIRelationTagPrefix+fNew.Field]
-	//		if isRelation {
-	//			fNew.Relation = fNew.Field
-	//			fNew.Field = JSONAPIIdFieldName
-	//		}
-	//
-	//		if fNew.CompareOperator == FilterOperatorIN {
-	//			valueRange := strings.Split(pAND[operIndex+len(operator):], ",")
-	//			fNew.Value = valueRange
-	//		} else {
-	//			fNew.Value = pAND[operIndex+len(operator):]
-	//		}
-	//
-	//
-	//		filtersAND = append(filtersAND, fNew)
-	//	}
-	//
-	//	logicalOperOR := "OR"
-	//	if indexOR == len(partsOR)-1 {
-	//		logicalOperOR = ""
-	//	}
-	//	for indexAND, f := range filtersAND {
-	//		if indexAND == len(filtersAND)-1 {
-	//			f.LogicalOperator = logicalOperOR
-	//		}
-	//		filters = append(filters, f)
-	//	}
-	//}
-
-	//return filters, nil
 }
 
 func TransformWebToSrc(filtersIn []*Filter, modelWeb interface{}, modelSrc mapper.ISrcModel) (out []*Filter, errOut error) {
@@ -558,19 +496,57 @@ func setFilterVal(filt reflect.Value, fieldType reflect.Type, newVal string) err
 	return nil
 }
 
-func GetOperator(s string) (string, int) {
-	operators := []string{
-		"<=", ">=", "!=", "IN", "in", ">", "<", "=",
-	}
-	for _, o := range operators {
-		index := strings.Index(s, o)
-		if index > 0 {
-			if o == "IN" || o == "in" {
-				return FilterOperatorIN, index
-			}
-			return o, index
-		}
-	}
+//func GetOperator(s string) (string, int) {
+//	operators := []string{
+//		"<=", ">=", "!=", "IN", "in", ">", "<", "=",
+//	}
+//	for _, o := range operators {
+//		index := strings.Index(s, o)
+//		if index > 0 {
+//			if o == "IN" || o == "in" {
+//				return FilterOperatorIN, index
+//			}
+//			return o, index
+//		}
+//	}
+//
+//	return "", -1
+//}
 
-	return "", -1
+func GetSrcFiltersFromRelationID(model interface{}) (res []*Filter, errOut error) {
+	if model == nil {
+		return nil, nil
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			errOut = fmt.Errorf("panic: %v", r)
+		}
+	}()
+
+	resVals := make([]int, 0, 10)
+
+	kind := reflect.TypeOf(model).Kind()
+	switch kind {
+	case reflect.Slice:
+		modelSlRef := reflect.ValueOf(model)
+
+		for i := 0; i < modelSlRef.Len(); i++ {
+			row := modelSlRef.Index(i)
+			idIntf := row.Elem().FieldByName("ID").Interface()
+			id, ok := idIntf.(int)
+			if !ok {
+				return nil, fmt.Errorf("%w: wrong type of ID", omniErr.ErrInternal)
+			}
+			resVals = append(resVals, id)
+		}
+		if len(resVals) == 0 {
+			return nil, fmt.Errorf("%w: empty filter", omniErr.ErrInternal)
+		}
+		return []*Filter{
+			&Filter{Field: "ID", CompareOperator: "in", Value: resVals},
+		}, nil
+	default:
+		return nil, fmt.Errorf("w: wrong filter model type", omniErr.ErrInternal)
+	}
+	return nil, nil
 }

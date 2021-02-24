@@ -6,7 +6,6 @@ import (
 	"gorm.io/datatypes"
 	"omnimanage/pkg/mapper"
 	"omnimanage/pkg/utils/converters"
-	"strconv"
 )
 
 type User struct {
@@ -86,23 +85,14 @@ func (m *User) ToWeb() (*omnimodels.User, error) {
 	return web, nil
 }
 
-func (m *User) ScanFromWeb(us *omnimodels.User) error {
-	var err error
-	m.ID, err = strconv.Atoi(us.ID)
+func (*User) ScanFromWeb(web *omnimodels.User) (*User, error) {
+	m := new(User)
+	err := mapper.ConvertWebToSrc(web, m)
 	if err != nil {
-		return fmt.Errorf("Wrong User ID: %v", us.ID)
+		return nil, err
 	}
 
-	m.UserName = us.Name
-	m.Password = us.Password
-	m.FirstName = us.FirstName
-	m.LastName = us.LastName
-	m.PhoneNumber = us.PhoneNumber
-	m.Email = us.Email
-	m.Image = us.Image
-	//....
-
-	return nil
+	return m, nil
 }
 
 func (m Users) ToWeb() ([]*omnimodels.User, error) {
