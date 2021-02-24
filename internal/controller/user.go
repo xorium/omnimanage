@@ -7,7 +7,9 @@ import (
 	"net/http"
 	"omnimanage/internal/model"
 	"omnimanage/internal/store"
+	omniErr "omnimanage/pkg/error"
 	filt "omnimanage/pkg/filters"
+	"omnimanage/pkg/mapper"
 	httpUtils "omnimanage/pkg/utils/http"
 	"strconv"
 )
@@ -21,27 +23,42 @@ func NewUserController(store *store.Store) *UserController {
 	return &UserController{store: store}
 }
 
-// Get returns User
+// GetOne returns User
 func (ctr *UserController) GetOne(ctx echo.Context) error {
-
-	id, err := strconv.Atoi(ctx.Param("id"))
+	idSrc, err := mapper.GetSrcID(ctx.Param("id"), &model.User{}, &omnimodels.User{})
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, errors.Wrap(err, "could not parse ID"))
+		switch {
+		case errors.Cause(err) == omniErr.ErrBadRequest:
+			return omniErr.NewHTTPError(ctx, http.StatusBadRequest,
+				omniErr.ErrCodeResource, omniErr.ErrTitleResourceNotFound, err)
+		default:
+			return omniErr.NewHTTPError(ctx, http.StatusInternalServerError,
+				omniErr.ErrCodeInternal, omniErr.ErrTitleInternal, err)
+		}
 	}
 
-	user, err := ctr.store.Users.GetOne(ctx.Request().Context(), id)
+	user, err := ctr.store.Users.GetOne(ctx.Request().Context(), idSrc)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, err)
+		switch {
+		case errors.Cause(err) == omniErr.ErrResourceNotFound || errors.Cause(err) == omniErr.ErrBadRequest:
+			return omniErr.NewHTTPError(ctx, http.StatusBadRequest,
+				omniErr.ErrCodeResource, omniErr.ErrTitleResourceNotFound, err)
+		default:
+			return omniErr.NewHTTPError(ctx, http.StatusInternalServerError,
+				omniErr.ErrCodeInternal, omniErr.ErrTitleInternal, err)
+		}
 	}
 
 	webUser, err := user.ToWeb()
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, err)
+		return omniErr.NewHTTPError(ctx, http.StatusInternalServerError,
+			omniErr.ErrCodeInternal, omniErr.ErrTitleInternal, err)
 	}
 
 	err = httpUtils.MarshalToResponse(webUser, ctx.Response())
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err)
+		return omniErr.NewHTTPError(ctx, http.StatusInternalServerError,
+			omniErr.ErrCodeInternal, omniErr.ErrTitleInternal, err)
 	}
 
 	ctx.Response().WriteHeader(http.StatusOK)

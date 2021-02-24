@@ -3,6 +3,7 @@ package mapper
 import (
 	"fmt"
 	"github.com/fatih/structs"
+	omniErr "omnimanage/pkg/error"
 	"reflect"
 )
 
@@ -20,6 +21,32 @@ type ModelMapper struct {
 
 type ISrcModel interface {
 	GetModelMapper() []*ModelMapper
+}
+
+func GetSrcID(webID string, srcModel ISrcModel, webModel interface{}) (idOut int, errOut error) {
+	defer func() {
+		if r := recover(); r != nil {
+			errOut = fmt.Errorf("%w: panic - %v", omniErr.ErrInternal, r)
+		}
+	}()
+
+	idMap := GetModelMapBySrcName("ID", srcModel.GetModelMapper())
+	if idMap == nil {
+		return -1, fmt.Errorf("%w: map ID not found", omniErr.ErrInternal)
+	}
+
+	if idMap.ConverterToSrc == nil {
+		return -1, fmt.Errorf("%w: Converter not found", omniErr.ErrInternal)
+	}
+	srcID, err := idMap.ConverterToSrc(webID)
+	if idMap == nil {
+		return -1, fmt.Errorf("%w: %v", omniErr.ErrInternal, err)
+	}
+	idOut, ok := srcID.(int)
+	if !ok {
+		return -1, fmt.Errorf("%w: wrong ID type", omniErr.ErrInternal)
+	}
+	return idOut, nil
 }
 
 func GetModelMapBySrcName(name string, m []*ModelMapper) *ModelMapper {

@@ -14,7 +14,7 @@ type Role struct {
 	Slug       string
 	Assigned   bool
 	Persistent bool
-	Users      []*User `gorm:"many2many:user_role;joinForeignKey:RolesID;JoinReferences:users_id"`
+	Users      Users `gorm:"many2many:user_role;joinForeignKey:RolesID;JoinReferences:users_id"`
 	Info       datatypes.JSON
 	CompanyID  int
 	Company    *Company `gorm:"foreignKey:CompanyID"`

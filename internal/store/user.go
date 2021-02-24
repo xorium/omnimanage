@@ -2,9 +2,12 @@ package store
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 	"omnimanage/internal/model"
+	omnierror "omnimanage/pkg/error"
 	"omnimanage/pkg/filters"
 )
 
@@ -19,8 +22,10 @@ func NewUserRepo(db *gorm.DB) *UserRepo {
 func (r *UserRepo) GetOne(ctx context.Context, id int) (*model.User, error) {
 	rec := new(model.User)
 	result := r.db.Debug().WithContext(ctx).Where("id = ?", id).Preload(clause.Associations).Find(rec)
-	if result.Error != nil {
-		return nil, result.Error
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return nil, omnierror.ErrResourceNotFound
+	} else if result.Error != nil {
+		return nil, fmt.Errorf("%w %v", omnierror.ErrInternal, result.Error)
 	}
 
 	return rec, nil
@@ -32,18 +37,15 @@ func (r *UserRepo) GetList(ctx context.Context, f []*filters.Filter) (model.User
 	db := r.db.Debug().WithContext(ctx)
 	db, err := filters.SetGormFilters(db, &users, f)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w %v", omnierror.ErrInternal, err)
 	}
 
-	//result := r.db.Debug().WithContext(ctx).Joins(""+
-	//	"JOIN locations on locations.id = users.location_id and locations.id=? ", "1").Joins(""+
-	//	"JOIN companies on companies.id = users.company_id AND companies.id=?", 4).Preload(clause.Associations).Find(&users)
 	result := db.Preload(clause.Associations).Find(&users)
-	if result.Error != nil {
-		return nil, result.Error
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return nil, omnierror.ErrResourceNotFound
+	} else if result.Error != nil {
+		return nil, fmt.Errorf("%w %v", omnierror.ErrInternal, result.Error)
 	}
-
-	//db.SetupJoinTable()
 
 	return users, nil
 }

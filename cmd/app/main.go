@@ -4,14 +4,16 @@ import (
 	"context"
 	"fmt"
 	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"log"
 	"net/http"
 	"omnimanage/internal/controller"
-	"omnimanage/internal/middleware"
+	omnimiddleware "omnimanage/internal/middleware"
 	"omnimanage/internal/store"
 	"omnimanage/internal/validator"
+	omniErr "omnimanage/pkg/error"
 	"os"
 	"os/signal"
 	"time"
@@ -50,11 +52,16 @@ func run() error {
 	// Init echo instance
 	e := echo.New()
 	e.Validator = validator.NewValidator()
-	//e.HTTPErrorHandler =
+	e.HTTPErrorHandler = omniErr.ErrHandler
 
 	// Middleware
-	e.Use(middleware.ResponseType)
-	//e.Use(middleware.Logger()) e.Use(middleware.Recover())
+	e.Use(
+		omnimiddleware.ResponseType,
+		middleware.Recover(),
+		middleware.RequestID(),
+	)
+
+	//e.Use(middleware.Logger())
 
 	// Controllers
 	cntrManager := controller.NewManager(store)

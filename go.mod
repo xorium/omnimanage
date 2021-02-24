@@ -3,7 +3,6 @@ module omnimanage
 go 1.15
 
 require (
-	github.com/Knetic/govaluate v3.0.0+incompatible
 	github.com/fatih/structs v1.1.0
 	github.com/google/jsonapi v0.0.0-20201022225600-f822737867f6
 	github.com/labstack/echo/v4 v4.1.17
