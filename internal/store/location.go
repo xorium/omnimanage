@@ -47,3 +47,8 @@ func (r *LocationRepo) Update(ctx context.Context, modelIn *model.Location) (*mo
 
 	return modelIn, nil
 }
+
+func (r *LocationRepo) Delete(ctx context.Context, id int) error {
+
+	return nil
+}

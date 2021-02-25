@@ -5,6 +5,7 @@ import (
 	"github.com/google/jsonapi"
 	"github.com/labstack/echo/v4"
 	"io"
+	"reflect"
 )
 
 func SetResponse(ctx echo.Context, code int, model interface{}) error {
@@ -42,4 +43,13 @@ func UnmarshalFromRequest(model interface{}, r io.Reader) error {
 		return err
 	}
 	return nil
+}
+
+func UnmarshalManyFromRequest(modelSingleRow interface{}, r io.Reader) ([]interface{}, error) {
+	records, err := jsonapi.UnmarshalManyPayload(r, reflect.TypeOf(modelSingleRow))
+	if err != nil {
+		return nil, err
+	}
+
+	return records, nil
 }

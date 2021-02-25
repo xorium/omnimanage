@@ -95,3 +95,49 @@ func (r *UserRepo) Update(ctx context.Context, modelIn *model.User) (*model.User
 
 	return modelIn, nil
 }
+
+func (r *UserRepo) Delete(ctx context.Context, id int) error {
+	db := r.db.Debug().WithContext(ctx)
+
+	dbResult := db.Delete(&model.User{}, id)
+	if dbResult.Error != nil {
+		return fmt.Errorf("%w %v", omnierror.ErrInternal, dbResult.Error)
+	}
+	if dbResult.RowsAffected == 0 {
+		return omnierror.ErrResourceNotFound
+	}
+	return nil
+}
+
+func (r *UserRepo) ReplaceRelation(ctx context.Context, id int, relationName string, relationData interface{}) error {
+	db := r.db.Debug().WithContext(ctx)
+
+	err := db.Model(&model.User{ID: id}).Association(relationName).Replace(relationData)
+	if err != nil {
+		return fmt.Errorf("%w %v", omnierror.ErrInternal, err)
+	}
+
+	return nil
+}
+
+func (r *UserRepo) AppendRelation(ctx context.Context, id int, relationName string, relationData interface{}) error {
+	db := r.db.Debug().WithContext(ctx)
+
+	err := db.Model(&model.User{ID: id}).Association(relationName).Append(relationData)
+	if err != nil {
+		return fmt.Errorf("%w %v", omnierror.ErrInternal, err)
+	}
+
+	return nil
+}
+
+func (r *UserRepo) DeleteRelation(ctx context.Context, id int, relationName string, relationData interface{}) error {
+	//db := r.db.Debug().WithContext(ctx)
+	//
+	//err := db.Model(&model.User{ID: id}).Association(relationName).Append(relationData)
+	//if err != nil {
+	//	return fmt.Errorf("%w %v", omnierror.ErrInternal, err)
+	//}
+
+	return nil
+}

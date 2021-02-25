@@ -12,6 +12,10 @@ type Users interface {
 	GetList(ctx context.Context, f []*filters.Filter) (model.Users, error)
 	Create(ctx context.Context, modelIn *model.User) (*model.User, error)
 	Update(ctx context.Context, modelIn *model.User) (*model.User, error)
+	Delete(ctx context.Context, id int) error
+	ReplaceRelation(ctx context.Context, id int, relationName string, relationData interface{}) error
+	AppendRelation(ctx context.Context, id int, relationName string, relationData interface{}) error
+	DeleteRelation(ctx context.Context, id int, relationName string, relationData interface{}) error
 }
 
 type Locations interface {
@@ -19,6 +23,7 @@ type Locations interface {
 	GetList(ctx context.Context, f []*filters.Filter) (model.Locations, error)
 	Create(ctx context.Context, modelIn *model.Location) (*model.Location, error)
 	Update(ctx context.Context, modelIn *model.Location) (*model.Location, error)
+	Delete(ctx context.Context, id int) error
 }
 
 type Roles interface {
@@ -26,6 +31,7 @@ type Roles interface {
 	GetList(ctx context.Context, f []*filters.Filter) (model.Roles, error)
 	Create(ctx context.Context, modelIn *model.Role) (*model.Role, error)
 	Update(ctx context.Context, modelIn *model.Role) (*model.Role, error)
+	Delete(ctx context.Context, id int) error
 }
 
 //type Companies interface {

@@ -95,3 +95,8 @@ func (r *RoleRepo) Update(ctx context.Context, modelIn *model.Role) (*model.Role
 
 	return modelIn, nil
 }
+
+func (r *RoleRepo) Delete(ctx context.Context, id int) error {
+
+	return nil
+}

@@ -72,13 +72,25 @@ func run() error {
 	companyGrp := e.Group("/companies/:idComp")
 
 	// User routes
-	userRoutes := companyGrp.Group("/users")
-	userRoutes.GET("", cntrManager.User.GetList)
-	userRoutes.GET("/:id", cntrManager.User.GetOne)
-	userRoutes.GET("/:id/relationships/:rel", cntrManager.User.GetRelation)
-	userRoutes.POST("/", cntrManager.User.Create)
-	userRoutes.PATCH("/:id", cntrManager.User.Update)
+	{
+		userRoutes := companyGrp.Group("/users")
+		userRoutes.GET("", cntrManager.User.GetList)
+		userRoutes.GET("/:id", cntrManager.User.GetOne)
+		userRoutes.POST("/", cntrManager.User.Create)
+		userRoutes.PATCH("/:id", cntrManager.User.Update)
+		userRoutes.DELETE("/:id", cntrManager.User.Delete)
 
+		// User relations
+		userRoutes.GET("/:id/relationships/:rel", cntrManager.User.GetRelation)
+		userRoutes.Match([]string{"PATCH", "POST", "DELETE"}, "/:id/relationships/:rel", cntrManager.User.ModifyRelation)
+	}
+
+	// Role routes
+	{
+		roleRoutes := companyGrp.Group("/roles")
+		roleRoutes.GET("", cntrManager.Role.GetList)
+		roleRoutes.GET("/:id", cntrManager.Role.GetOne)
+	}
 	// Start Server
 	s := &http.Server{
 		Addr:         ":8081",          // -> to config

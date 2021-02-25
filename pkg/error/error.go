@@ -18,6 +18,7 @@ const (
 	ErrTitleNoAuth           = "AUTH_REQUIRED"
 	ErrTitleResourceNotFound = "RESOURCE_OBJECT_NOT_FOUND"
 	ErrTitleResourceExists   = "RESOURCE_OBJECT_EXISTS"
+	ErrTitleBadRequest       = "BAD_REQUEST"
 	ErrTitleInternal         = "INTERNAL"
 )
 
@@ -36,7 +37,7 @@ func MakeSliceJSONAPI(errObj *jsonapi.ErrorObject) []*jsonapi.ErrorObject {
 }
 
 func NewHTTPError(ctx echo.Context, status int, code string, title string, err error) *echo.HTTPError {
-	rid := ctx.Request().Header.Get(echo.HeaderXRequestID)
+	rid := ctx.Response().Header().Get(echo.HeaderXRequestID)
 	errObj := &HTTPErrorObj{
 		ID:    rid,
 		Code:  code,
