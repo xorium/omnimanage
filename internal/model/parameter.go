@@ -19,9 +19,9 @@ type Parameter struct {
 
 type Parameters []*Parameter
 
-func (m *Parameter) GetModelMapper() []*mapper.ModelMapper {
-	return []*mapper.ModelMapper{
-		&mapper.ModelMapper{SrcName: "ID", WebName: "ID",
+func (m *Parameter) GetModelMapper() []*mapper.ModelMap {
+	return []*mapper.ModelMap{
+		&mapper.ModelMap{SrcName: "ID", WebName: "ID",
 			ConverterToSrc: func(web interface{}) (interface{}, error) {
 				id, err := converters.IDWebToSrc(web)
 				if err != nil {
@@ -37,11 +37,11 @@ func (m *Parameter) GetModelMapper() []*mapper.ModelMapper {
 				return id, nil
 			},
 		},
-		&mapper.ModelMapper{SrcName: "Name", WebName: "Name"},
-		&mapper.ModelMapper{SrcName: "Description", WebName: "Description"},
-		&mapper.ModelMapper{SrcName: "Type", WebName: "Type"},
-		&mapper.ModelMapper{SrcName: "IsValuesSetFinite", WebName: "IsValuesSetFinite"},
-		&mapper.ModelMapper{SrcName: "Info", WebName: "Info",
+		&mapper.ModelMap{SrcName: "Name", WebName: "Name"},
+		&mapper.ModelMap{SrcName: "Description", WebName: "Description"},
+		&mapper.ModelMap{SrcName: "Type", WebName: "Type"},
+		&mapper.ModelMap{SrcName: "IsValuesSetFinite", WebName: "IsValuesSetFinite"},
+		&mapper.ModelMap{SrcName: "Info", WebName: "Info",
 			ConverterToSrc: func(web interface{}) (interface{}, error) {
 				j, err := converters.JSONWebToSrc(web)
 				if err != nil {

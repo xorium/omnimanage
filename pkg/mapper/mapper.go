@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/fatih/structs"
 	omniErr "omnimanage/pkg/error"
+	"omnimanage/pkg/utils/converters"
 	"reflect"
 )
 
@@ -13,18 +14,81 @@ const (
 	MethodNameModelMapper = "GetModelMapper"
 )
 
-type ModelMapper struct {
+type ModelMap struct {
 	SrcName        string
 	WebName        string
 	ConverterToSrc func(web interface{}) (interface{}, error)
 	ConverterToWeb func(src interface{}) (interface{}, error)
 }
 
-type ISrcModel interface {
-	GetModelMapper() []*ModelMapper
+type ModelMapper struct {
+	customFunc map[string]func(model interface{}) (interface{}, error)
 }
 
-func GetSrcID(webID string, srcModel ISrcModel, webModel interface{}) (idOut int, errOut error) {
+func NewModelMapper() *ModelMapper {
+	m := &ModelMapper{customFunc: make(map[string]func(model interface{}) (interface{}, error))}
+
+	// TODO перенести куда-нибудь
+	// default converters
+	{
+		m.RegisterCustomConverter(
+			"ID2src",
+			func(web interface{}) (interface{}, error) {
+				id, err := converters.IDWebToSrc(web)
+				if err != nil {
+					return nil, fmt.Errorf("ID: %v. %v", web, err)
+				}
+				return id, nil
+			},
+		)
+		m.RegisterCustomConverter(
+			"ID2web",
+			func(src interface{}) (interface{}, error) {
+				id, err := converters.IDSrcToWeb(src)
+				if err != nil {
+					return nil, fmt.Errorf("ID: %v. %v", src, err)
+				}
+				return id, nil
+			},
+		)
+		m.RegisterCustomConverter(
+			"JSON2src",
+			func(web interface{}) (interface{}, error) {
+				j, err := converters.JSONWebToSrc(web)
+				if err != nil {
+					return nil, fmt.Errorf("Settings: %v. %v", web, err)
+				}
+				return j, nil
+			},
+		)
+		m.RegisterCustomConverter(
+			"JSON2web",
+			func(src interface{}) (interface{}, error) {
+				w, err := converters.JSONSrcToWeb(src)
+				if err != nil {
+					return nil, fmt.Errorf("Settings: %v. %v", src, err)
+				}
+				return w, nil
+			},
+		)
+	}
+	return m
+}
+
+func (m *ModelMapper) RegisterCustomConverter(tagName string, f func(model interface{}) (interface{}, error)) {
+	m.customFunc[tagName] = f
+}
+
+func (m *ModelMapper) GetModelMaps(srcModel interface{}) []*ModelMap {
+
+	return nil
+}
+
+type ISrcModel interface {
+	GetModelMapper() []*ModelMap
+}
+
+func GetSrcID(webID string, srcModel ISrcModel) (idOut int, errOut error) {
 	defer func() {
 		if r := recover(); r != nil {
 			errOut = fmt.Errorf("%w: panic - %v", omniErr.ErrInternal, r)
@@ -41,7 +105,7 @@ func GetSrcID(webID string, srcModel ISrcModel, webModel interface{}) (idOut int
 	}
 	srcID, err := idMap.ConverterToSrc(webID)
 	if idMap == nil {
-		return -1, fmt.Errorf("%w: %v", omniErr.ErrInternal, err)
+		return -1, fmt.Errorf("%w: %v", omniErr.ErrBadRequest, err)
 	}
 	idOut, ok := srcID.(int)
 	if !ok {
@@ -50,7 +114,7 @@ func GetSrcID(webID string, srcModel ISrcModel, webModel interface{}) (idOut int
 	return idOut, nil
 }
 
-func GetModelMapBySrcName(name string, m []*ModelMapper) *ModelMapper {
+func GetModelMapBySrcName(name string, m []*ModelMap) *ModelMap {
 	for _, val := range m {
 		if val.SrcName == name {
 			return val
@@ -59,7 +123,7 @@ func GetModelMapBySrcName(name string, m []*ModelMapper) *ModelMapper {
 	return nil
 }
 
-func GetModelMapByWebName(name string, m []*ModelMapper) *ModelMapper {
+func GetModelMapByWebName(name string, m []*ModelMap) *ModelMap {
 	for _, val := range m {
 		if val.WebName == name {
 			return val
@@ -253,7 +317,7 @@ func CallMethodWith2Output(any interface{}, name string, args ...interface{}) (o
 	return results[0], nil
 }
 
-func GetMapperDynamic(t reflect.Type) (out []*ModelMapper, errOut error) {
+func GetMapperDynamic(t reflect.Type) (out []*ModelMap, errOut error) {
 	defer func() {
 		if r := recover(); r != nil {
 			errOut = fmt.Errorf("panic: %v", r)
@@ -268,7 +332,7 @@ func GetMapperDynamic(t reflect.Type) (out []*ModelMapper, errOut error) {
 	}
 
 	results := method.Call([]reflect.Value{})
-	maps, ok := results[0].Interface().([]*ModelMapper)
+	maps, ok := results[0].Interface().([]*ModelMap)
 	if !ok {
 		return nil, fmt.Errorf("Internal error in method %v", MethodNameModelMapper)
 	}

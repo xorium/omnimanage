@@ -23,9 +23,9 @@ type Subscription struct {
 
 type Subscriptions []*Subscription
 
-func (m *Subscription) GetModelMapper() []*mapper.ModelMapper {
-	return []*mapper.ModelMapper{
-		&mapper.ModelMapper{SrcName: "ID", WebName: "ID",
+func (m *Subscription) GetModelMapper() []*mapper.ModelMap {
+	return []*mapper.ModelMap{
+		&mapper.ModelMap{SrcName: "ID", WebName: "ID",
 			ConverterToSrc: func(web interface{}) (interface{}, error) {
 				id, err := converters.IDWebToSrc(web)
 				if err != nil {
@@ -41,8 +41,8 @@ func (m *Subscription) GetModelMapper() []*mapper.ModelMapper {
 				return id, nil
 			},
 		},
-		&mapper.ModelMapper{SrcName: "Title", WebName: "Title"},
-		&mapper.ModelMapper{SrcName: "ContactChannels", WebName: "ContactChannels",
+		&mapper.ModelMap{SrcName: "Title", WebName: "Title"},
+		&mapper.ModelMap{SrcName: "ContactChannels", WebName: "ContactChannels",
 			ConverterToSrc: func(web interface{}) (interface{}, error) {
 				j, err := converters.JSONWebToSrc(web)
 				if err != nil {
@@ -58,7 +58,7 @@ func (m *Subscription) GetModelMapper() []*mapper.ModelMapper {
 				return w, nil
 			},
 		},
-		&mapper.ModelMapper{SrcName: "Options", WebName: "Options",
+		&mapper.ModelMap{SrcName: "Options", WebName: "Options",
 			ConverterToSrc: func(web interface{}) (interface{}, error) {
 				j, err := converters.JSONWebToSrc(web)
 				if err != nil {
@@ -74,9 +74,9 @@ func (m *Subscription) GetModelMapper() []*mapper.ModelMapper {
 				return w, nil
 			},
 		},
-		&mapper.ModelMapper{SrcName: "Company", WebName: "Company"},
-		&mapper.ModelMapper{SrcName: "User", WebName: "User"},
-		&mapper.ModelMapper{SrcName: "Rules", WebName: "Rules"},
+		&mapper.ModelMap{SrcName: "Company", WebName: "Company"},
+		&mapper.ModelMap{SrcName: "User", WebName: "User"},
+		&mapper.ModelMap{SrcName: "Rules", WebName: "Rules"},
 	}
 }
 

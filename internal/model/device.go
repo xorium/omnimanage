@@ -32,9 +32,9 @@ type Device struct {
 
 type Devices []*Device
 
-func (m *Device) GetModelMapper() []*mapper.ModelMapper {
-	return []*mapper.ModelMapper{
-		&mapper.ModelMapper{SrcName: "ID", WebName: "ID",
+func (m *Device) GetModelMapper() []*mapper.ModelMap {
+	return []*mapper.ModelMap{
+		&mapper.ModelMap{SrcName: "ID", WebName: "ID",
 			ConverterToSrc: func(web interface{}) (interface{}, error) {
 				id, err := converters.IDWebToSrc(web)
 				if err != nil {
@@ -50,11 +50,11 @@ func (m *Device) GetModelMapper() []*mapper.ModelMapper {
 				return id, nil
 			},
 		},
-		&mapper.ModelMapper{SrcName: "Name", WebName: "Name"},
-		&mapper.ModelMapper{SrcName: "Slug", WebName: "Slug"},
-		&mapper.ModelMapper{SrcName: "Title", WebName: "Title"},
-		&mapper.ModelMapper{SrcName: "Description", WebName: "Description"},
-		&mapper.ModelMapper{SrcName: "Info", WebName: "Info",
+		&mapper.ModelMap{SrcName: "Name", WebName: "Name"},
+		&mapper.ModelMap{SrcName: "Slug", WebName: "Slug"},
+		&mapper.ModelMap{SrcName: "Title", WebName: "Title"},
+		&mapper.ModelMap{SrcName: "Description", WebName: "Description"},
+		&mapper.ModelMap{SrcName: "Info", WebName: "Info",
 			ConverterToSrc: func(web interface{}) (interface{}, error) {
 				j, err := converters.JSONWebToSrc(web)
 				if err != nil {
@@ -70,12 +70,12 @@ func (m *Device) GetModelMapper() []*mapper.ModelMapper {
 				return w, nil
 			},
 		},
-		&mapper.ModelMapper{SrcName: "Image", WebName: "Image"},
-		&mapper.ModelMapper{SrcName: "Company", WebName: "Company"},
-		&mapper.ModelMapper{SrcName: "Model", WebName: "Model"},
-		&mapper.ModelMapper{SrcName: "Location", WebName: "Location"},
-		&mapper.ModelMapper{SrcName: "Parent", WebName: "Parent"},
-		&mapper.ModelMapper{SrcName: "Rules", WebName: "Rules"},
+		&mapper.ModelMap{SrcName: "Image", WebName: "Image"},
+		&mapper.ModelMap{SrcName: "Company", WebName: "Company"},
+		&mapper.ModelMap{SrcName: "Model", WebName: "Model"},
+		&mapper.ModelMap{SrcName: "Location", WebName: "Location"},
+		&mapper.ModelMap{SrcName: "Parent", WebName: "Parent"},
+		&mapper.ModelMap{SrcName: "Rules", WebName: "Rules"},
 	}
 }
 
@@ -121,9 +121,9 @@ type DeviceGroup struct {
 
 type DeviceGroups []*DeviceGroup
 
-func (m *DeviceGroup) GetModelMapper() []*mapper.ModelMapper {
-	return []*mapper.ModelMapper{
-		&mapper.ModelMapper{SrcName: "ID", WebName: "ID",
+func (m *DeviceGroup) GetModelMapper() []*mapper.ModelMap {
+	return []*mapper.ModelMap{
+		&mapper.ModelMap{SrcName: "ID", WebName: "ID",
 			ConverterToSrc: func(web interface{}) (interface{}, error) {
 				id, err := converters.IDWebToSrc(web)
 				if err != nil {
@@ -139,10 +139,10 @@ func (m *DeviceGroup) GetModelMapper() []*mapper.ModelMapper {
 				return id, nil
 			},
 		},
-		&mapper.ModelMapper{SrcName: "Name", WebName: "Name"},
-		&mapper.ModelMapper{SrcName: "Description", WebName: "Description"},
-		&mapper.ModelMapper{SrcName: "Type", WebName: "Type"},
-		&mapper.ModelMapper{SrcName: "Filters", WebName: "Filters",
+		&mapper.ModelMap{SrcName: "Name", WebName: "Name"},
+		&mapper.ModelMap{SrcName: "Description", WebName: "Description"},
+		&mapper.ModelMap{SrcName: "Type", WebName: "Type"},
+		&mapper.ModelMap{SrcName: "Filters", WebName: "Filters",
 			ConverterToSrc: func(web interface{}) (interface{}, error) {
 				j, err := converters.JSONWebToSrc(web)
 				if err != nil {
@@ -158,9 +158,9 @@ func (m *DeviceGroup) GetModelMapper() []*mapper.ModelMapper {
 				return w, nil
 			},
 		},
-		&mapper.ModelMapper{SrcName: "Company", WebName: "Company"},
-		&mapper.ModelMapper{SrcName: "Devices", WebName: "Devices"},
-		&mapper.ModelMapper{SrcName: "User", WebName: "User"},
+		&mapper.ModelMap{SrcName: "Company", WebName: "Company"},
+		&mapper.ModelMap{SrcName: "Devices", WebName: "Devices"},
+		&mapper.ModelMap{SrcName: "User", WebName: "User"},
 	}
 }
 
@@ -206,9 +206,9 @@ func (DeviceModel) TableName() string {
 	return "device_models"
 }
 
-func (m *DeviceModel) GetModelMapper() []*mapper.ModelMapper {
-	return []*mapper.ModelMapper{
-		&mapper.ModelMapper{SrcName: "ID", WebName: "ID",
+func (m *DeviceModel) GetModelMapper() []*mapper.ModelMap {
+	return []*mapper.ModelMap{
+		&mapper.ModelMap{SrcName: "ID", WebName: "ID",
 			ConverterToSrc: func(web interface{}) (interface{}, error) {
 				id, err := converters.IDWebToSrc(web)
 				if err != nil {
@@ -224,10 +224,10 @@ func (m *DeviceModel) GetModelMapper() []*mapper.ModelMapper {
 				return id, nil
 			},
 		},
-		&mapper.ModelMapper{SrcName: "Name", WebName: "Name"},
-		&mapper.ModelMapper{SrcName: "Title", WebName: "Title"},
-		&mapper.ModelMapper{SrcName: "Description", WebName: "Description"},
-		&mapper.ModelMapper{SrcName: "Manufacturer", WebName: "Manufacturer"},
+		&mapper.ModelMap{SrcName: "Name", WebName: "Name"},
+		&mapper.ModelMap{SrcName: "Title", WebName: "Title"},
+		&mapper.ModelMap{SrcName: "Description", WebName: "Description"},
+		&mapper.ModelMap{SrcName: "Manufacturer", WebName: "Manufacturer"},
 	}
 }
 

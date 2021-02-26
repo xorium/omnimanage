@@ -16,9 +16,9 @@ func (Company) TableName() string {
 	return "companies"
 }
 
-func (m *Company) GetModelMapper() []*mapper.ModelMapper {
-	return []*mapper.ModelMapper{
-		&mapper.ModelMapper{SrcName: "ID", WebName: "ID",
+func (m *Company) GetModelMapper() []*mapper.ModelMap {
+	return []*mapper.ModelMap{
+		&mapper.ModelMap{SrcName: "ID", WebName: "ID",
 			ConverterToSrc: func(web interface{}) (interface{}, error) {
 				w, ok := web.(string)
 				if !ok {
@@ -39,7 +39,7 @@ func (m *Company) GetModelMapper() []*mapper.ModelMapper {
 				return id, nil
 			},
 		},
-		&mapper.ModelMapper{SrcName: "Name", WebName: "Name"},
+		&mapper.ModelMap{SrcName: "Name", WebName: "Name"},
 	}
 }
 

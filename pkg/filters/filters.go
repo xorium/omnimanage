@@ -45,7 +45,7 @@ var OperatorsMap = map[string]string{
 
 // filter schema: filter[relation.relation_field][operator]=value
 func ParseFiltersFromQueryToSrcModel(queryStr string, modelWeb interface{}, modelSrc mapper.ISrcModel) ([]*Filter, error) {
-	filtersStrings, err := GetFiltersFromQueryString(queryStr, modelWeb)
+	filtersStrings, err := ParseQueryString(queryStr, modelWeb)
 	if err != nil {
 		return nil, err
 	}
@@ -58,7 +58,7 @@ func ParseFiltersFromQueryToSrcModel(queryStr string, modelWeb interface{}, mode
 	return srcFilters, nil
 }
 
-func GetFiltersFromQueryString(queryStr string, modelWeb interface{}) ([]*Filter, error) {
+func ParseQueryString(queryStr string, modelWeb interface{}) ([]*Filter, error) {
 	parts := strings.Split(queryStr, "&")
 
 	tagMap, err := buildFieldsMapByTag("jsonapi", reflect.TypeOf(modelWeb))
@@ -370,7 +370,7 @@ func buildFieldsMapByTag(tagKey string, srcType reflect.Type) (map[string]string
 	return fieldsByTag, nil
 }
 
-func processAttrField(filterName string, filterValue interface{}, tagMap map[string]string, modelRefType reflect.Type, modelSrcMaps []*mapper.ModelMapper) (srcValue interface{}, scrName string, errOut error) {
+func processAttrField(filterName string, filterValue interface{}, tagMap map[string]string, modelRefType reflect.Type, modelSrcMaps []*mapper.ModelMap) (srcValue interface{}, scrName string, errOut error) {
 	webFieldName, err := getFieldNameByFilterName(filterName, false, tagMap)
 	if err != nil {
 		return nil, "", err
@@ -415,7 +415,7 @@ func processAttrField(filterName string, filterValue interface{}, tagMap map[str
 	return nil, "", nil
 }
 
-func convertFilterValueToSrc(webFieldType reflect.Type, filterValStr string, modelFieldMapper *mapper.ModelMapper) (interface{}, error) {
+func convertFilterValueToSrc(webFieldType reflect.Type, filterValStr string, modelFieldMapper *mapper.ModelMap) (interface{}, error) {
 	var tmpValIntf interface{}
 	tmpValRef := reflect.ValueOf(&tmpValIntf)
 

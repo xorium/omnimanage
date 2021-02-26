@@ -10,10 +10,6 @@ import (
 )
 
 const (
-	ErrCodeUnknown  = "UNKNOWN_ERROR"
-	ErrCodeResource = "RESOURCE_ERROR"
-	ErrCodeInternal = "INTERNAL_ERROR"
-
 	ErrTitleUnknown          = "UNKNOWN_ERROR"
 	ErrTitleNoAuth           = "AUTH_REQUIRED"
 	ErrTitleResourceNotFound = "RESOURCE_OBJECT_NOT_FOUND"
@@ -36,11 +32,9 @@ func MakeSliceJSONAPI(errObj *jsonapi.ErrorObject) []*jsonapi.ErrorObject {
 	return errs
 }
 
-func NewHTTPError(ctx echo.Context, status int, code string, title string, err error) *echo.HTTPError {
-	rid := ctx.Response().Header().Get(echo.HeaderXRequestID)
+func NewHTTPError(status int, title string, err error) *echo.HTTPError {
+
 	errObj := &HTTPErrorObj{
-		ID:    rid,
-		Code:  code,
 		Title: title,
 		Err:   err,
 	}
@@ -49,21 +43,19 @@ func NewHTTPError(ctx echo.Context, status int, code string, title string, err e
 }
 
 type HTTPErrorObj struct {
-	ID    string
-	Code  string
 	Title string
 	Err   error
 }
 
 // ErrHandler implements a custom echo error handler
 func ErrHandler(err error, ctx echo.Context) {
+	rid := ctx.Response().Header().Get(echo.HeaderXRequestID)
 
-	errObj := &jsonapi.ErrorObject{}
+	errObj := &jsonapi.ErrorObject{ID: rid}
 
 	echoErr, ok := err.(*echo.HTTPError)
 	if !ok {
 		errObj.Status = strconv.Itoa(http.StatusInternalServerError)
-		errObj.Code = ErrCodeUnknown
 		errObj.Title = ErrTitleUnknown
 		errObj.Detail = err.Error()
 
@@ -71,14 +63,15 @@ func ErrHandler(err error, ctx echo.Context) {
 		return
 	}
 
+	errObj.Status = strconv.Itoa(echoErr.Code)
+
 	switch errInt := echoErr.Message.(type) {
 	case *HTTPErrorObj:
-		errObj.ID = errInt.ID
-		errObj.Status = strconv.Itoa(echoErr.Code)
-		errObj.Code = errInt.Code
 		errObj.Title = errInt.Title
 		errObj.Detail = errInt.Err.Error()
-
+	case string:
+		errObj.Title = errInt
+		errObj.Detail = errInt
 	default:
 
 	}

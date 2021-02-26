@@ -14,6 +14,7 @@ import (
 	"omnimanage/internal/store"
 	"omnimanage/internal/validator"
 	omniErr "omnimanage/pkg/error"
+	"omnimanage/pkg/mapper"
 	"os"
 	"os/signal"
 	"time"
@@ -64,10 +65,10 @@ func run() error {
 	//e.Use(middleware.Logger())
 
 	// Controllers
-	cntrManager := controller.NewManager(store)
+	cntrManager := controller.NewManager(store, mapper.NewModelMapper())
 
 	// Routes
-	e.Use()
+
 	// Common grp
 	companyGrp := e.Group("/companies/:idComp")
 
@@ -80,9 +81,12 @@ func run() error {
 		userRoutes.PATCH("/:id", cntrManager.User.Update)
 		userRoutes.DELETE("/:id", cntrManager.User.Delete)
 
-		// User relations
+		// relations
 		userRoutes.GET("/:id/relationships/:rel", cntrManager.User.GetRelation)
-		userRoutes.Match([]string{"PATCH", "POST", "DELETE"}, "/:id/relationships/:rel", cntrManager.User.ModifyRelation)
+		userRoutes.Match(
+			[]string{"PATCH", "POST", "DELETE"},
+			"/:id/relationships/:rel",
+			cntrManager.User.ModifyRelation)
 	}
 
 	// Role routes
@@ -91,6 +95,7 @@ func run() error {
 		roleRoutes.GET("", cntrManager.Role.GetList)
 		roleRoutes.GET("/:id", cntrManager.Role.GetOne)
 	}
+
 	// Start Server
 	s := &http.Server{
 		Addr:         ":8081",          // -> to config

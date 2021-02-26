@@ -24,15 +24,13 @@ func NewRoleController(store *store.Store) *RoleController {
 
 // GetOne returns Role
 func (ctr *RoleController) GetOne(ctx echo.Context) error {
-	idSrc, err := mapper.GetSrcID(ctx.Param("id"), &model.Role{}, &omnimodels.Role{})
+	idSrc, err := mapper.GetSrcID(ctx.Param("id"), &model.Role{})
 	if err != nil {
 		switch {
 		case errors.Cause(err) == omniErr.ErrBadRequest:
-			return omniErr.NewHTTPError(ctx, http.StatusBadRequest,
-				omniErr.ErrCodeResource, omniErr.ErrTitleResourceNotFound, err)
+			return omniErr.NewHTTPError(http.StatusBadRequest, omniErr.ErrTitleResourceNotFound, err)
 		default:
-			return omniErr.NewHTTPError(ctx, http.StatusInternalServerError,
-				omniErr.ErrCodeInternal, omniErr.ErrTitleInternal, err)
+			return omniErr.NewHTTPError(http.StatusInternalServerError, omniErr.ErrTitleInternal, err)
 		}
 	}
 
@@ -40,24 +38,20 @@ func (ctr *RoleController) GetOne(ctx echo.Context) error {
 	if err != nil {
 		switch {
 		case errors.Cause(err) == omniErr.ErrResourceNotFound:
-			return omniErr.NewHTTPError(ctx, http.StatusNotFound,
-				omniErr.ErrCodeResource, omniErr.ErrTitleResourceNotFound, err)
+			return omniErr.NewHTTPError(http.StatusNotFound, omniErr.ErrTitleResourceNotFound, err)
 		default:
-			return omniErr.NewHTTPError(ctx, http.StatusInternalServerError,
-				omniErr.ErrCodeInternal, omniErr.ErrTitleInternal, err)
+			return omniErr.NewHTTPError(http.StatusInternalServerError, omniErr.ErrTitleInternal, err)
 		}
 	}
 
 	webRes, err := srcRes.ToWeb()
 	if err != nil {
-		return omniErr.NewHTTPError(ctx, http.StatusInternalServerError,
-			omniErr.ErrCodeInternal, omniErr.ErrTitleInternal, err)
+		return omniErr.NewHTTPError(http.StatusInternalServerError, omniErr.ErrTitleInternal, err)
 	}
 
 	err = httpUtils.SetResponse(ctx, http.StatusOK, webRes)
 	if err != nil {
-		return omniErr.NewHTTPError(ctx, http.StatusInternalServerError,
-			omniErr.ErrCodeInternal, omniErr.ErrTitleInternal, err)
+		return omniErr.NewHTTPError(http.StatusInternalServerError, omniErr.ErrTitleInternal, err)
 	}
 
 	return nil
@@ -69,11 +63,9 @@ func (ctr *RoleController) GetList(ctx echo.Context) error {
 	if err != nil {
 		switch {
 		case errors.Cause(err) == omniErr.ErrBadRequest:
-			return omniErr.NewHTTPError(ctx, http.StatusBadRequest,
-				omniErr.ErrCodeResource, omniErr.ErrTitleResourceNotFound, err)
+			return omniErr.NewHTTPError(http.StatusBadRequest, omniErr.ErrTitleResourceNotFound, err)
 		default:
-			return omniErr.NewHTTPError(ctx, http.StatusInternalServerError,
-				omniErr.ErrCodeInternal, omniErr.ErrTitleInternal, err)
+			return omniErr.NewHTTPError(http.StatusInternalServerError, omniErr.ErrTitleInternal, err)
 		}
 	}
 
@@ -81,24 +73,20 @@ func (ctr *RoleController) GetList(ctx echo.Context) error {
 	if err != nil {
 		switch {
 		case errors.Cause(err) == omniErr.ErrResourceNotFound:
-			return omniErr.NewHTTPError(ctx, http.StatusNotFound,
-				omniErr.ErrCodeResource, omniErr.ErrTitleResourceNotFound, err)
+			return omniErr.NewHTTPError(http.StatusNotFound, omniErr.ErrTitleResourceNotFound, err)
 		default:
-			return omniErr.NewHTTPError(ctx, http.StatusInternalServerError,
-				omniErr.ErrCodeInternal, omniErr.ErrTitleInternal, err)
+			return omniErr.NewHTTPError(http.StatusInternalServerError, omniErr.ErrTitleInternal, err)
 		}
 	}
 
 	webRes, err := srcRes.ToWeb()
 	if err != nil {
-		return omniErr.NewHTTPError(ctx, http.StatusInternalServerError,
-			omniErr.ErrCodeInternal, omniErr.ErrTitleInternal, err)
+		return omniErr.NewHTTPError(http.StatusInternalServerError, omniErr.ErrTitleInternal, err)
 	}
 
 	err = httpUtils.SetResponse(ctx, http.StatusOK, webRes)
 	if err != nil {
-		return omniErr.NewHTTPError(ctx, http.StatusInternalServerError,
-			omniErr.ErrCodeInternal, omniErr.ErrTitleInternal, err)
+		return omniErr.NewHTTPError(http.StatusInternalServerError, omniErr.ErrTitleInternal, err)
 	}
 	return nil
 }

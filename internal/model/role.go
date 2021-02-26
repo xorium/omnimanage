@@ -22,9 +22,9 @@ type Role struct {
 
 type Roles []*Role
 
-func (m *Role) GetModelMapper() []*mapper.ModelMapper {
-	return []*mapper.ModelMapper{
-		&mapper.ModelMapper{SrcName: "ID", WebName: "ID",
+func (m *Role) GetModelMapper() []*mapper.ModelMap {
+	return []*mapper.ModelMap{
+		&mapper.ModelMap{SrcName: "ID", WebName: "ID",
 			ConverterToSrc: func(web interface{}) (interface{}, error) {
 				id, err := converters.IDWebToSrc(web)
 				if err != nil {
@@ -40,11 +40,11 @@ func (m *Role) GetModelMapper() []*mapper.ModelMapper {
 				return id, nil
 			},
 		},
-		&mapper.ModelMapper{SrcName: "Name", WebName: "Name"},
-		&mapper.ModelMapper{SrcName: "Slug", WebName: "Slug"},
-		&mapper.ModelMapper{SrcName: "Assigned", WebName: "Assigned"},
-		&mapper.ModelMapper{SrcName: "Persistent", WebName: "Persistent"},
-		&mapper.ModelMapper{SrcName: "Info", WebName: "Info",
+		&mapper.ModelMap{SrcName: "Name", WebName: "Name"},
+		&mapper.ModelMap{SrcName: "Slug", WebName: "Slug"},
+		&mapper.ModelMap{SrcName: "Assigned", WebName: "Assigned"},
+		&mapper.ModelMap{SrcName: "Persistent", WebName: "Persistent"},
+		&mapper.ModelMap{SrcName: "Info", WebName: "Info",
 			ConverterToSrc: func(web interface{}) (interface{}, error) {
 				j, err := converters.JSONWebToSrc(web)
 				if err != nil {
@@ -60,7 +60,7 @@ func (m *Role) GetModelMapper() []*mapper.ModelMapper {
 				return w, nil
 			},
 		},
-		&mapper.ModelMapper{SrcName: "Company", WebName: "Company"},
+		&mapper.ModelMap{SrcName: "Company", WebName: "Company"},
 	}
 }
 

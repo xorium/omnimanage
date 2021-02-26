@@ -25,9 +25,9 @@ type Rule struct {
 }
 type Rules []*Rule
 
-func (m *Rule) GetModelMapper() []*mapper.ModelMapper {
-	return []*mapper.ModelMapper{
-		&mapper.ModelMapper{SrcName: "ID", WebName: "ID",
+func (m *Rule) GetModelMapper() []*mapper.ModelMap {
+	return []*mapper.ModelMap{
+		&mapper.ModelMap{SrcName: "ID", WebName: "ID",
 			ConverterToSrc: func(web interface{}) (interface{}, error) {
 				id, err := converters.IDWebToSrc(web)
 				if err != nil {
@@ -43,9 +43,9 @@ func (m *Rule) GetModelMapper() []*mapper.ModelMapper {
 				return id, nil
 			},
 		},
-		&mapper.ModelMapper{SrcName: "Title", WebName: "Title"},
-		&mapper.ModelMapper{SrcName: "Slug", WebName: "Slug"},
-		&mapper.ModelMapper{SrcName: "Expression", WebName: "Expression",
+		&mapper.ModelMap{SrcName: "Title", WebName: "Title"},
+		&mapper.ModelMap{SrcName: "Slug", WebName: "Slug"},
+		&mapper.ModelMap{SrcName: "Expression", WebName: "Expression",
 			ConverterToSrc: func(web interface{}) (interface{}, error) {
 				j, err := converters.JSONWebToSrc(web)
 				if err != nil {
@@ -61,14 +61,14 @@ func (m *Rule) GetModelMapper() []*mapper.ModelMapper {
 				return w, nil
 			},
 		},
-		&mapper.ModelMapper{SrcName: "Duration", WebName: "Duration"},
-		&mapper.ModelMapper{SrcName: "EventLevel", WebName: "EventLevel"},
-		&mapper.ModelMapper{SrcName: "EventSessionState", WebName: "EventSessionState"},
-		&mapper.ModelMapper{SrcName: "RuleGroup", WebName: "RuleGroup"},
+		&mapper.ModelMap{SrcName: "Duration", WebName: "Duration"},
+		&mapper.ModelMap{SrcName: "EventLevel", WebName: "EventLevel"},
+		&mapper.ModelMap{SrcName: "EventSessionState", WebName: "EventSessionState"},
+		&mapper.ModelMap{SrcName: "RuleGroup", WebName: "RuleGroup"},
 
-		&mapper.ModelMapper{SrcName: "Company", WebName: "Company"},
-		&mapper.ModelMapper{SrcName: "Devices", WebName: "Devices"},
-		&mapper.ModelMapper{SrcName: "Params", WebName: "Params"},
+		&mapper.ModelMap{SrcName: "Company", WebName: "Company"},
+		&mapper.ModelMap{SrcName: "Devices", WebName: "Devices"},
+		&mapper.ModelMap{SrcName: "Params", WebName: "Params"},
 	}
 }
 

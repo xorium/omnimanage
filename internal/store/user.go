@@ -132,12 +132,12 @@ func (r *UserRepo) AppendRelation(ctx context.Context, id int, relationName stri
 }
 
 func (r *UserRepo) DeleteRelation(ctx context.Context, id int, relationName string, relationData interface{}) error {
-	//db := r.db.Debug().WithContext(ctx)
-	//
-	//err := db.Model(&model.User{ID: id}).Association(relationName).Append(relationData)
-	//if err != nil {
-	//	return fmt.Errorf("%w %v", omnierror.ErrInternal, err)
-	//}
+	db := r.db.Debug().WithContext(ctx)
+
+	err := db.Model(&model.User{ID: id}).Association(relationName).Delete(relationData)
+	if err != nil {
+		return fmt.Errorf("%w %v", omnierror.ErrInternal, err)
+	}
 
 	return nil
 }

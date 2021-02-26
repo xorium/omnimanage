@@ -16,9 +16,9 @@ type Manufacturer struct {
 
 type Manufacturers []*Manufacturer
 
-func (m *Manufacturer) GetModelMapper() []*mapper.ModelMapper {
-	return []*mapper.ModelMapper{
-		&mapper.ModelMapper{SrcName: "ID", WebName: "ID",
+func (m *Manufacturer) GetModelMapper() []*mapper.ModelMap {
+	return []*mapper.ModelMap{
+		&mapper.ModelMap{SrcName: "ID", WebName: "ID",
 			ConverterToSrc: func(web interface{}) (interface{}, error) {
 				id, err := converters.IDWebToSrc(web)
 				if err != nil {
@@ -34,8 +34,8 @@ func (m *Manufacturer) GetModelMapper() []*mapper.ModelMapper {
 				return id, nil
 			},
 		},
-		&mapper.ModelMapper{SrcName: "Name", WebName: "Name"},
-		&mapper.ModelMapper{SrcName: "Info", WebName: "Info",
+		&mapper.ModelMap{SrcName: "Name", WebName: "Name"},
+		&mapper.ModelMap{SrcName: "Info", WebName: "Info",
 			ConverterToSrc: func(web interface{}) (interface{}, error) {
 				j, err := converters.JSONWebToSrc(web)
 				if err != nil {

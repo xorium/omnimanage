@@ -9,17 +9,17 @@ import (
 )
 
 type User struct {
-	ID            int `gorm:"primaryKey"`
-	UserName      string
-	Password      string
+	ID            int    `gorm:"primaryKey" omni:"ID;src:ID2src;web:ID2web"`
+	UserName      string `omni:"UserName"`
+	Password      string `omni:"Password"`
 	FirstName     string
 	LastName      string
 	PhoneNumber   string
 	Email         string
 	Image         string
-	Settings      datatypes.JSON
+	Settings      datatypes.JSON `omni:"Settings;src:JSON2src;web:JSON2web"`
 	CompanyID     int
-	Company       *Company `gorm:"foreignKey:CompanyID"`
+	Company       *Company `gorm:"foreignKey:CompanyID" omni:"Company"`
 	LocationID    int
 	Location      *Location       `gorm:"foreignKey:LocationID"`
 	Roles         Roles           `gorm:"many2many:user_role;joinForeignKey:UsersID;JoinReferences:roles_id"`
@@ -28,9 +28,9 @@ type User struct {
 
 type Users []*User
 
-func (m *User) GetModelMapper() []*mapper.ModelMapper {
-	return []*mapper.ModelMapper{
-		&mapper.ModelMapper{SrcName: "ID", WebName: "ID",
+func (m *User) GetModelMapper() []*mapper.ModelMap {
+	return []*mapper.ModelMap{
+		&mapper.ModelMap{SrcName: "ID", WebName: "ID",
 			ConverterToSrc: func(web interface{}) (interface{}, error) {
 				id, err := converters.IDWebToSrc(web)
 				if err != nil {
@@ -46,14 +46,14 @@ func (m *User) GetModelMapper() []*mapper.ModelMapper {
 				return id, nil
 			},
 		},
-		&mapper.ModelMapper{SrcName: "UserName", WebName: "Name"},
-		&mapper.ModelMapper{SrcName: "Password", WebName: "Password"},
-		&mapper.ModelMapper{SrcName: "FirstName", WebName: "FirstName"},
-		&mapper.ModelMapper{SrcName: "LastName", WebName: "LastName"},
-		&mapper.ModelMapper{SrcName: "PhoneNumber", WebName: "PhoneNumber"},
-		&mapper.ModelMapper{SrcName: "Email", WebName: "Email"},
-		&mapper.ModelMapper{SrcName: "Image", WebName: "Image"},
-		&mapper.ModelMapper{SrcName: "Settings", WebName: "Settings",
+		&mapper.ModelMap{SrcName: "UserName", WebName: "Name"},
+		&mapper.ModelMap{SrcName: "Password", WebName: "Password"},
+		&mapper.ModelMap{SrcName: "FirstName", WebName: "FirstName"},
+		&mapper.ModelMap{SrcName: "LastName", WebName: "LastName"},
+		&mapper.ModelMap{SrcName: "PhoneNumber", WebName: "PhoneNumber"},
+		&mapper.ModelMap{SrcName: "Email", WebName: "Email"},
+		&mapper.ModelMap{SrcName: "Image", WebName: "Image"},
+		&mapper.ModelMap{SrcName: "Settings", WebName: "Settings",
 			ConverterToSrc: func(web interface{}) (interface{}, error) {
 				j, err := converters.JSONWebToSrc(web)
 				if err != nil {
@@ -69,9 +69,9 @@ func (m *User) GetModelMapper() []*mapper.ModelMapper {
 				return w, nil
 			},
 		},
-		&mapper.ModelMapper{SrcName: "Company", WebName: "Company"},
-		&mapper.ModelMapper{SrcName: "Location", WebName: "Location"},
-		&mapper.ModelMapper{SrcName: "Roles", WebName: "Roles"},
+		&mapper.ModelMap{SrcName: "Company", WebName: "Company"},
+		&mapper.ModelMap{SrcName: "Location", WebName: "Location"},
+		&mapper.ModelMap{SrcName: "Roles", WebName: "Roles"},
 	}
 }
 
