@@ -44,13 +44,13 @@ var OperatorsMap = map[string]string{
 }
 
 // filter schema: filter[relation.relation_field][operator]=value
-func ParseFiltersFromQueryToSrcModel(queryStr string, modelWeb interface{}, modelSrc mapper.ISrcModel) ([]*Filter, error) {
+func ParseFiltersFromQueryToSrcModel(queryStr string, m *mapper.ModelMapper, modelWeb interface{}, modelSrc mapper.ISrcModel) ([]*Filter, error) {
 	filtersStrings, err := ParseQueryString(queryStr, modelWeb)
 	if err != nil {
 		return nil, err
 	}
 
-	srcFilters, err := TransformWebToSrc(filtersStrings, modelWeb, modelSrc)
+	srcFilters, err := TransformWebToSrc(filtersStrings, m, modelWeb, modelSrc)
 	if err != nil {
 		return nil, err
 	}
@@ -114,7 +114,7 @@ func ParseQueryString(queryStr string, modelWeb interface{}) ([]*Filter, error) 
 
 }
 
-func TransformWebToSrc(filtersIn []*Filter, modelWeb interface{}, modelSrc mapper.ISrcModel) (out []*Filter, errOut error) {
+func TransformWebToSrc(filtersIn []*Filter, m *mapper.ModelMapper, modelWeb interface{}, modelSrc mapper.ISrcModel) (out []*Filter, errOut error) {
 	if filtersIn == nil {
 		return nil, nil
 	}
@@ -137,11 +137,11 @@ func TransformWebToSrc(filtersIn []*Filter, modelWeb interface{}, modelSrc mappe
 		return nil, err
 	}
 
-	//srcStruct := structs.New(modelSrc)
-	//srcStructMap := srcStruct.Map()
-
-	modelSrcMaps := modelSrc.GetModelMapper()
-
+	//modelSrcMaps := modelSrc.GetModelMapper()
+	modelSrcMaps, err := m.GetModelMaps(modelSrc)
+	if err != nil {
+		return nil, err
+	}
 	for i, filterRow := range filtersIn {
 		var newFilterRow *Filter
 
@@ -168,7 +168,7 @@ func TransformWebToSrc(filtersIn []*Filter, modelWeb interface{}, modelSrc mappe
 				return nil, err
 			}
 
-			// get model mapper by relation field name
+			// get src mapper by relation field name
 			modelRelFieldMapper := mapper.GetModelMapByWebName(relWebFieldName, modelSrcMaps)
 			if modelRelFieldMapper == nil {
 				return nil, fmt.Errorf("Cannot find map for field %v", relWebFieldName)
@@ -186,31 +186,10 @@ func TransformWebToSrc(filtersIn []*Filter, modelWeb interface{}, modelSrc mappe
 				srcRefType = srcRefModel.Type
 			}
 
-			modelSrcRelMaps, err := mapper.GetMapperDynamic(srcRefType)
+			modelSrcRelMaps, err := m.GetModelMaps(reflect.New(srcRefType).Elem().Interface()) //mapper.GetMapperDynamic(srcRefType)
 			if err != nil {
 				return nil, fmt.Errorf("Field %v: %v", modelRelFieldMapper.SrcName, err)
 			}
-			//srcRelModel, ok := srcStructMap[modelRelFieldMapper.SrcName]
-			//if !ok {
-			//	return nil, fmt.Errorf("Cannot find map for field %v", relWebFieldName)
-			//}
-			//
-			//var srcModel mapper.ISrcModel
-			//if reflect.TypeOf(srcRelModel).Kind() == reflect.Slice {
-			//	srcModels, ok := srcRelModel.([]*mapper.ISrcModel)
-			//	if !ok {
-			//		return nil, fmt.Errorf("Cannot find map for field %v", relWebFieldName)
-			//	}
-			//	srcModels = append(srcModels, nil)
-			//	srcModel = *srcModels[0]
-			//} else {
-			//	srcModel, ok = srcRelModel.(mapper.ISrcModel)
-			//	if !ok {
-			//		return nil, fmt.Errorf("Cannot find map for field %v", relWebFieldName)
-			//	}
-			//}
-			//
-			//modelSrcRelMaps := srcModel.GetModelMapper()
 
 			//process attr field
 			srcVal, srcFieldName, err := processAttrField(filterRow.Field, filterRow.Value, relTagMapJSONAPI, relRefType.Elem(), modelSrcRelMaps)
@@ -245,6 +224,7 @@ func TransformWebToSrc(filtersIn []*Filter, modelWeb interface{}, modelSrc mappe
 	}
 
 	return out, nil
+
 }
 
 func SetGormFilters(db *gorm.DB, model interface{}, filtersIn []*Filter) (*gorm.DB, error) {
@@ -546,7 +526,7 @@ func GetSrcFiltersFromRelationID(model interface{}) (res []*Filter, errOut error
 			&Filter{Field: "ID", CompareOperator: "in", Value: resVals},
 		}, nil
 	default:
-		return nil, fmt.Errorf("w: wrong filter model type", omniErr.ErrInternal)
+		return nil, fmt.Errorf("w: wrong filter src type", omniErr.ErrInternal)
 	}
 	return nil, nil
 }

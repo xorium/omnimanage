@@ -1,4 +1,4 @@
-package model
+package src
 
 import "testing"
 
@@ -13,7 +13,7 @@ func TestUser_ToWeb(t *testing.T) {
 		},
 	}
 
-	userOmni, err := userDb.ToWeb()
+	userOmni, err := userDb.ToWeb(nil)
 	if err != nil {
 		t.Error(err)
 	}

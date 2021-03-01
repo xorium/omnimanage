@@ -4,14 +4,14 @@ import (
 	"fmt"
 	"github.com/labstack/echo/v4"
 	"github.com/pkg/errors"
-	omnimodels "gitlab.omnicube.ru/libs/omnilib/models"
-	"gitlab.omnicube.ru/libs/omnilib/utils/converter"
 	"net/http"
-	"omnimanage/internal/model"
 	"omnimanage/internal/store"
 	omniErr "omnimanage/pkg/error"
 	filt "omnimanage/pkg/filters"
 	"omnimanage/pkg/mapper"
+	"omnimanage/pkg/model/src"
+	webmodels "omnimanage/pkg/model/web"
+	"omnimanage/pkg/utils/converter"
 	httpUtils "omnimanage/pkg/utils/http"
 )
 
@@ -27,7 +27,7 @@ func NewUserController(store *store.Store, mapper *mapper.ModelMapper) *UserCont
 
 // GetOne returns User
 func (ctr *UserController) GetOne(ctx echo.Context) error {
-	idSrc, err := mapper.GetSrcID(ctx.Param("id"), &model.User{})
+	idSrc, err := ctr.mapper.GetSrcID(ctx.Param("id"), &src.User{})
 	if err != nil {
 		switch {
 		case errors.Cause(err) == omniErr.ErrBadRequest:
@@ -47,7 +47,7 @@ func (ctr *UserController) GetOne(ctx echo.Context) error {
 		}
 	}
 
-	webUser, err := user.ToWeb()
+	webUser, err := user.ToWeb(ctr.mapper)
 	if err != nil {
 		return omniErr.NewHTTPError(http.StatusInternalServerError, omniErr.ErrTitleInternal, err)
 	}
@@ -63,7 +63,7 @@ func (ctr *UserController) GetOne(ctx echo.Context) error {
 // GetList returns users list
 func (ctr *UserController) GetList(ctx echo.Context) error {
 
-	srcFilters, err := filt.ParseFiltersFromQueryToSrcModel(ctx.Request().URL.RawQuery, &omnimodels.User{}, &model.User{})
+	srcFilters, err := filt.ParseFiltersFromQueryToSrcModel(ctx.Request().URL.RawQuery, ctr.mapper, &webmodels.User{}, &src.User{})
 	if err != nil {
 		switch {
 		case errors.Cause(err) == omniErr.ErrBadRequest:
@@ -83,7 +83,7 @@ func (ctr *UserController) GetList(ctx echo.Context) error {
 		}
 	}
 
-	webUsers, err := users.ToWeb()
+	webUsers, err := users.ToWeb(ctr.mapper)
 	if err != nil {
 		return omniErr.NewHTTPError(http.StatusInternalServerError, omniErr.ErrTitleInternal, err)
 	}
@@ -98,7 +98,7 @@ func (ctr *UserController) GetList(ctx echo.Context) error {
 // GetRelation returns relation data
 func (ctr *UserController) GetRelation(ctx echo.Context) error {
 
-	idSrc, err := mapper.GetSrcID(ctx.Param("id"), &model.User{})
+	idSrc, err := ctr.mapper.GetSrcID(ctx.Param("id"), &src.User{})
 	if err != nil {
 		switch {
 		case errors.Cause(err) == omniErr.ErrBadRequest:
@@ -150,7 +150,7 @@ func (ctr *UserController) GetRelation(ctx echo.Context) error {
 			}
 		}
 
-		webList, err := srcList.ToWeb()
+		webList, err := srcList.ToWeb(ctr.mapper)
 		if err != nil {
 			return omniErr.NewHTTPError(http.StatusInternalServerError, omniErr.ErrTitleInternal, err)
 		}
@@ -170,7 +170,7 @@ func (ctr *UserController) GetRelation(ctx echo.Context) error {
 // ModifyRelation - create, delete, replace relations
 func (ctr *UserController) ModifyRelation(ctx echo.Context) error {
 
-	idSrc, err := mapper.GetSrcID(ctx.Param("id"), &model.User{})
+	idSrc, err := ctr.mapper.GetSrcID(ctx.Param("id"), &src.User{})
 	if err != nil {
 		switch {
 		case errors.Cause(err) == omniErr.ErrBadRequest:
@@ -186,18 +186,18 @@ func (ctr *UserController) ModifyRelation(ctx echo.Context) error {
 
 	case "roles":
 
-		webRecordsIntf, err := httpUtils.UnmarshalManyFromRequest(new(omnimodels.Role), ctx.Request().Body)
+		webRecordsIntf, err := httpUtils.UnmarshalManyFromRequest(new(webmodels.Role), ctx.Request().Body)
 		if err != nil {
 			return omniErr.NewHTTPError(http.StatusBadRequest, omniErr.ErrTitleBadRequest, err)
 		}
 
-		var webModels []*omnimodels.Role
+		var webModels []*webmodels.Role
 		err = converter.SliceI2SliceModel(webRecordsIntf, &webModels)
 		if err != nil {
 			return omniErr.NewHTTPError(http.StatusInternalServerError, omniErr.ErrTitleInternal, err)
 		}
 
-		srcModelsNew, err := model.Roles{}.ScanFromWeb(webModels)
+		srcModelsNew, err := src.Roles{}.ScanFromWeb(webModels, ctr.mapper)
 		if err != nil {
 			return omniErr.NewHTTPError(http.StatusBadRequest, omniErr.ErrTitleResourceNotFound, err)
 		}
@@ -226,13 +226,13 @@ func (ctr *UserController) ModifyRelation(ctx echo.Context) error {
 
 // Create creates user
 func (ctr *UserController) Create(ctx echo.Context) error {
-	webModel := new(omnimodels.User)
+	webModel := new(webmodels.User)
 	err := httpUtils.UnmarshalFromRequest(webModel, ctx.Request().Body)
 	if err != nil {
 		return omniErr.NewHTTPError(http.StatusBadRequest, omniErr.ErrTitleResourceNotFound, err)
 	}
 
-	srcUser, err := new(model.User).ScanFromWeb(webModel)
+	srcUser, err := new(src.User).ScanFromWeb(webModel, ctr.mapper)
 	if err != nil {
 		return omniErr.NewHTTPError(http.StatusBadRequest, omniErr.ErrTitleResourceNotFound, err)
 	}
@@ -247,7 +247,7 @@ func (ctr *UserController) Create(ctx echo.Context) error {
 		}
 	}
 
-	webUser, err := user.ToWeb()
+	webUser, err := user.ToWeb(ctr.mapper)
 	if err != nil {
 		return omniErr.NewHTTPError(http.StatusInternalServerError, omniErr.ErrTitleInternal, err)
 	}
@@ -263,13 +263,13 @@ func (ctr *UserController) Create(ctx echo.Context) error {
 // Update updates user attributes
 func (ctr *UserController) Update(ctx echo.Context) error {
 
-	webModel := new(omnimodels.User)
+	webModel := new(webmodels.User)
 	err := httpUtils.UnmarshalFromRequest(webModel, ctx.Request().Body)
 	if err != nil {
 		return omniErr.NewHTTPError(http.StatusBadRequest, omniErr.ErrTitleResourceNotFound, err)
 	}
 
-	srcUser, err := new(model.User).ScanFromWeb(webModel)
+	srcUser, err := new(src.User).ScanFromWeb(webModel, ctr.mapper)
 	if err != nil {
 		return omniErr.NewHTTPError(http.StatusBadRequest, omniErr.ErrTitleResourceNotFound, err)
 	}
@@ -284,7 +284,7 @@ func (ctr *UserController) Update(ctx echo.Context) error {
 		}
 	}
 
-	webUser, err := user.ToWeb()
+	webUser, err := user.ToWeb(ctr.mapper)
 	if err != nil {
 		return omniErr.NewHTTPError(http.StatusInternalServerError, omniErr.ErrTitleInternal, err)
 	}
@@ -300,7 +300,7 @@ func (ctr *UserController) Update(ctx echo.Context) error {
 
 // Delete deletes user
 func (ctr *UserController) Delete(ctx echo.Context) error {
-	idSrc, err := mapper.GetSrcID(ctx.Param("id"), &model.User{})
+	idSrc, err := ctr.mapper.GetSrcID(ctx.Param("id"), &src.User{})
 	if err != nil {
 		switch {
 		case errors.Cause(err) == omniErr.ErrBadRequest:

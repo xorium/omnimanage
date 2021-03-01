@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
-	"omnimanage/internal/model"
 	omnierror "omnimanage/pkg/error"
 	"omnimanage/pkg/filters"
+	"omnimanage/pkg/model/src"
 )
 
 type UserRepo struct {
@@ -19,10 +19,10 @@ func NewUserRepo(db *gorm.DB) *UserRepo {
 	return &UserRepo{db: db}
 }
 
-func (r *UserRepo) GetOne(ctx context.Context, id int) (*model.User, error) {
+func (r *UserRepo) GetOne(ctx context.Context, id int) (*src.User, error) {
 	db := r.db.Debug().WithContext(ctx)
 
-	rec := new(model.User)
+	rec := new(src.User)
 	dbResult := db.Where("id = ?", id).Preload(clause.Associations).First(rec)
 	if errors.Is(dbResult.Error, gorm.ErrRecordNotFound) {
 		return nil, omnierror.ErrResourceNotFound
@@ -33,8 +33,8 @@ func (r *UserRepo) GetOne(ctx context.Context, id int) (*model.User, error) {
 	return rec, nil
 }
 
-func (r *UserRepo) GetList(ctx context.Context, f []*filters.Filter) (model.Users, error) {
-	res := make([]*model.User, 0, 1)
+func (r *UserRepo) GetList(ctx context.Context, f []*filters.Filter) (src.Users, error) {
+	res := make([]*src.User, 0, 1)
 
 	db := r.db.Debug().WithContext(ctx)
 	db, err := filters.SetGormFilters(db, &res, f)
@@ -54,11 +54,11 @@ func (r *UserRepo) GetList(ctx context.Context, f []*filters.Filter) (model.User
 	return res, nil
 }
 
-func (r *UserRepo) Create(ctx context.Context, modelIn *model.User) (*model.User, error) {
+func (r *UserRepo) Create(ctx context.Context, modelIn *src.User) (*src.User, error) {
 
 	db := r.db.Debug().WithContext(ctx)
 
-	tmpRec := new(model.User)
+	tmpRec := new(src.User)
 	dbResult := db.Where("id = ?", modelIn.ID).First(tmpRec)
 	if dbResult.Error != nil && !errors.Is(dbResult.Error, gorm.ErrRecordNotFound) {
 		return nil, fmt.Errorf("%w %v", omnierror.ErrInternal, dbResult.Error)
@@ -75,10 +75,10 @@ func (r *UserRepo) Create(ctx context.Context, modelIn *model.User) (*model.User
 	return modelIn, nil
 }
 
-func (r *UserRepo) Update(ctx context.Context, modelIn *model.User) (*model.User, error) {
+func (r *UserRepo) Update(ctx context.Context, modelIn *src.User) (*src.User, error) {
 	db := r.db.Debug().WithContext(ctx)
 
-	tmpRec := new(model.User)
+	tmpRec := new(src.User)
 	dbResult := db.Where("id = ?", modelIn.ID).First(tmpRec)
 	if errors.Is(dbResult.Error, gorm.ErrRecordNotFound) {
 		return nil, omnierror.ErrResourceNotFound
@@ -99,7 +99,7 @@ func (r *UserRepo) Update(ctx context.Context, modelIn *model.User) (*model.User
 func (r *UserRepo) Delete(ctx context.Context, id int) error {
 	db := r.db.Debug().WithContext(ctx)
 
-	dbResult := db.Delete(&model.User{}, id)
+	dbResult := db.Delete(&src.User{}, id)
 	if dbResult.Error != nil {
 		return fmt.Errorf("%w %v", omnierror.ErrInternal, dbResult.Error)
 	}
@@ -112,7 +112,7 @@ func (r *UserRepo) Delete(ctx context.Context, id int) error {
 func (r *UserRepo) ReplaceRelation(ctx context.Context, id int, relationName string, relationData interface{}) error {
 	db := r.db.Debug().WithContext(ctx)
 
-	err := db.Model(&model.User{ID: id}).Association(relationName).Replace(relationData)
+	err := db.Model(&src.User{ID: id}).Association(relationName).Replace(relationData)
 	if err != nil {
 		return fmt.Errorf("%w %v", omnierror.ErrInternal, err)
 	}
@@ -123,7 +123,7 @@ func (r *UserRepo) ReplaceRelation(ctx context.Context, id int, relationName str
 func (r *UserRepo) AppendRelation(ctx context.Context, id int, relationName string, relationData interface{}) error {
 	db := r.db.Debug().WithContext(ctx)
 
-	err := db.Model(&model.User{ID: id}).Association(relationName).Append(relationData)
+	err := db.Model(&src.User{ID: id}).Association(relationName).Append(relationData)
 	if err != nil {
 		return fmt.Errorf("%w %v", omnierror.ErrInternal, err)
 	}
@@ -134,7 +134,7 @@ func (r *UserRepo) AppendRelation(ctx context.Context, id int, relationName stri
 func (r *UserRepo) DeleteRelation(ctx context.Context, id int, relationName string, relationData interface{}) error {
 	db := r.db.Debug().WithContext(ctx)
 
-	err := db.Model(&model.User{ID: id}).Association(relationName).Delete(relationData)
+	err := db.Model(&src.User{ID: id}).Association(relationName).Delete(relationData)
 	if err != nil {
 		return fmt.Errorf("%w %v", omnierror.ErrInternal, err)
 	}

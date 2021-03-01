@@ -1,4 +1,4 @@
-package model
+package src
 
 type Notification struct {
 	ID           int                    `jsonapi:"primary,users"`

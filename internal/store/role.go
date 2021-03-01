@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
-	"omnimanage/internal/model"
 	omnierror "omnimanage/pkg/error"
 	"omnimanage/pkg/filters"
+	"omnimanage/pkg/model/src"
 )
 
 type RoleRepo struct {
@@ -19,10 +19,10 @@ func NewRoleRepo(db *gorm.DB) *RoleRepo {
 	return &RoleRepo{db: db}
 }
 
-func (r *RoleRepo) GetOne(ctx context.Context, id int) (*model.Role, error) {
+func (r *RoleRepo) GetOne(ctx context.Context, id int) (*src.Role, error) {
 	db := r.db.Debug().WithContext(ctx)
 
-	rec := new(model.Role)
+	rec := new(src.Role)
 	dbResult := db.Where("id = ?", id).Preload(clause.Associations).First(rec)
 	if errors.Is(dbResult.Error, gorm.ErrRecordNotFound) {
 		return nil, omnierror.ErrResourceNotFound
@@ -33,8 +33,8 @@ func (r *RoleRepo) GetOne(ctx context.Context, id int) (*model.Role, error) {
 	return rec, nil
 }
 
-func (r *RoleRepo) GetList(ctx context.Context, f []*filters.Filter) (model.Roles, error) {
-	res := make([]*model.Role, 0, 1)
+func (r *RoleRepo) GetList(ctx context.Context, f []*filters.Filter) (src.Roles, error) {
+	res := make([]*src.Role, 0, 1)
 
 	db := r.db.Debug().WithContext(ctx)
 	db, err := filters.SetGormFilters(db, &res, f)
@@ -54,11 +54,11 @@ func (r *RoleRepo) GetList(ctx context.Context, f []*filters.Filter) (model.Role
 	return res, nil
 }
 
-func (r *RoleRepo) Create(ctx context.Context, modelIn *model.Role) (*model.Role, error) {
+func (r *RoleRepo) Create(ctx context.Context, modelIn *src.Role) (*src.Role, error) {
 
 	db := r.db.Debug().WithContext(ctx)
 
-	tmpRec := new(model.Role)
+	tmpRec := new(src.Role)
 	dbResult := db.Where("id = ?", modelIn.ID).First(tmpRec)
 	if dbResult.Error != nil && !errors.Is(dbResult.Error, gorm.ErrRecordNotFound) {
 		return nil, fmt.Errorf("%w %v", omnierror.ErrInternal, dbResult.Error)
@@ -75,10 +75,10 @@ func (r *RoleRepo) Create(ctx context.Context, modelIn *model.Role) (*model.Role
 	return modelIn, nil
 }
 
-func (r *RoleRepo) Update(ctx context.Context, modelIn *model.Role) (*model.Role, error) {
+func (r *RoleRepo) Update(ctx context.Context, modelIn *src.Role) (*src.Role, error) {
 	db := r.db.Debug().WithContext(ctx)
 
-	tmpRec := new(model.Role)
+	tmpRec := new(src.Role)
 	dbResult := db.Where("id = ?", modelIn.ID).First(tmpRec)
 	if errors.Is(dbResult.Error, gorm.ErrRecordNotFound) {
 		return nil, omnierror.ErrResourceNotFound

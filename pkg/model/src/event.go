@@ -1,4 +1,4 @@
-package model
+package src
 
 type Event struct {
 	ID           int                    `jsonapi:"primary,events"`

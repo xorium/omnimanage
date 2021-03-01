@@ -4,8 +4,8 @@ import (
 	"context"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
-	"omnimanage/internal/model"
 	"omnimanage/pkg/filters"
+	"omnimanage/pkg/model/src"
 )
 
 type LocationRepo struct {
@@ -16,8 +16,8 @@ func NewLocationRepo(db *gorm.DB) *LocationRepo {
 	return &LocationRepo{db: db}
 }
 
-func (r *LocationRepo) GetOne(ctx context.Context, id int) (*model.Location, error) {
-	rec := new(model.Location)
+func (r *LocationRepo) GetOne(ctx context.Context, id int) (*src.Location, error) {
+	rec := new(src.Location)
 	result := r.db.Debug().WithContext(ctx).Where("id = ?", id).Preload(clause.Associations).Find(rec)
 	if result.Error != nil {
 		return nil, result.Error
@@ -26,8 +26,8 @@ func (r *LocationRepo) GetOne(ctx context.Context, id int) (*model.Location, err
 	return rec, nil
 }
 
-func (r *LocationRepo) GetList(ctx context.Context, f []*filters.Filter) (model.Locations, error) {
-	records := make([]*model.Location, 5)
+func (r *LocationRepo) GetList(ctx context.Context, f []*filters.Filter) (src.Locations, error) {
+	records := make([]*src.Location, 5)
 
 	//db := filt.SetGormFilters(r.db, filters)
 	result := r.db.Debug().WithContext(ctx).Preload(clause.Associations).Find(&records)
@@ -38,12 +38,12 @@ func (r *LocationRepo) GetList(ctx context.Context, f []*filters.Filter) (model.
 	return records, nil
 }
 
-func (r *LocationRepo) Create(ctx context.Context, modelIn *model.Location) (*model.Location, error) {
+func (r *LocationRepo) Create(ctx context.Context, modelIn *src.Location) (*src.Location, error) {
 
 	return modelIn, nil
 }
 
-func (r *LocationRepo) Update(ctx context.Context, modelIn *model.Location) (*model.Location, error) {
+func (r *LocationRepo) Update(ctx context.Context, modelIn *src.Location) (*src.Location, error) {
 
 	return modelIn, nil
 }
