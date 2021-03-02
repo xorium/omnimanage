@@ -1,23 +1,21 @@
 package src
 
 import (
-	"fmt"
 	"gorm.io/datatypes"
 	"omnimanage/pkg/mapper"
-	omnimodels "omnimanage/pkg/model/web"
-	"strconv"
+	webmodels "omnimanage/pkg/model/web"
 )
 
 type Subscription struct {
-	ID              int `gorm:"primaryKey`
-	Title           string
-	ContactChannels datatypes.JSON
-	Options         datatypes.JSON
+	ID              int            `gorm:"primaryKey" omni:"ID;src:ID2src;web:ID2web"`
+	Title           string         `omni:"Name"`
+	ContactChannels datatypes.JSON `omni:"ContactChannels;src:JSON2src;web:JSON2web"`
+	Options         datatypes.JSON `omni:"Options;src:JSON2src;web:JSON2web"`
 	CompanyID       int
-	Company         *Company `gorm:"foreignKey:CompanyID"`
+	Company         *Company `gorm:"foreignKey:CompanyID" omni:"Company"`
 	UserID          string
-	User            *User `gorm:"foreignKey:UserID"`
-	Rules           Rules `gorm:"many2many:rules_subscriptions;joinForeignKey:SubscriptionID;JoinReferences:rules_group_id"`
+	User            *User `gorm:"foreignKey:UserID" omni:"User"`
+	Rules           Rules `gorm:"many2many:rules_subscriptions;joinForeignKey:SubscriptionID;JoinReferences:rules_group_id" omni:"Rules"`
 }
 
 type Subscriptions []*Subscription
@@ -79,8 +77,8 @@ type Subscriptions []*Subscription
 //	}
 //}
 
-func (m *Subscription) ToWeb(mapper *mapper.ModelMapper) (*omnimodels.Subscription, error) {
-	web := new(omnimodels.Subscription)
+func (m *Subscription) ToWeb(mapper *mapper.ModelMapper) (*webmodels.Subscription, error) {
+	web := new(webmodels.Subscription)
 
 	err := mapper.ConvertSrcToWeb(m, &web)
 	if err != nil {
@@ -89,30 +87,21 @@ func (m *Subscription) ToWeb(mapper *mapper.ModelMapper) (*omnimodels.Subscripti
 	return web, nil
 }
 
-func (m *Subscription) ScanFromWeb(us *omnimodels.Subscription, mapper *mapper.ModelMapper) error {
-	var err error
-	m.ID, err = strconv.Atoi(us.ID)
+func (*Subscription) ScanFromWeb(web *webmodels.Subscription, mapper *mapper.ModelMapper) (*Subscription, error) {
+	m := new(Subscription)
+	err := mapper.ConvertWebToSrc(web, m)
 	if err != nil {
-		return fmt.Errorf("Wrong User ID: %v", us.ID)
+		return nil, err
 	}
-	//
-	//m.UserName = us.Name
-	//m.Password = us.Password
-	//m.FirstName = us.FirstName
-	//m.LastName = us.LastName
-	//m.PhoneNumber = us.PhoneNumber
-	//m.Email = us.Email
-	//m.Image = us.Image
-	////....
 
-	return nil
+	return m, nil
 }
 
-func (m Subscriptions) ToWeb(mapper *mapper.ModelMapper) ([]*omnimodels.Subscription, error) {
+func (m Subscriptions) ToWeb(mapper *mapper.ModelMapper) ([]*webmodels.Subscription, error) {
 	if m == nil {
 		return nil, nil
 	}
-	omniM := make([]*omnimodels.Subscription, 0, 5)
+	omniM := make([]*webmodels.Subscription, 0, 5)
 	for _, u := range m {
 		webUser, err := u.ToWeb(mapper)
 		if err != nil {
@@ -121,4 +110,21 @@ func (m Subscriptions) ToWeb(mapper *mapper.ModelMapper) ([]*omnimodels.Subscrip
 		omniM = append(omniM, webUser)
 	}
 	return omniM, nil
+}
+
+func (m Subscriptions) ScanFromWeb(web []*webmodels.Subscription, mapper *mapper.ModelMapper) (Subscriptions, error) {
+	if len(web) == 0 {
+		return nil, nil
+	}
+
+	srcPoint := new(Subscription)
+	res := make(Subscriptions, 0, len(web))
+	for _, u := range web {
+		srcRec, err := srcPoint.ScanFromWeb(u, mapper)
+		if err != nil {
+			return nil, err
+		}
+		res = append(res, srcRec)
+	}
+	return res, nil
 }

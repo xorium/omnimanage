@@ -97,3 +97,20 @@ func (m Locations) ToWeb(mapper *mapper.ModelMapper) ([]*webmodels.Location, err
 	}
 	return omniM, nil
 }
+
+func (m Locations) ScanFromWeb(web []*webmodels.Location, mapper *mapper.ModelMapper) (Locations, error) {
+	if len(web) == 0 {
+		return nil, nil
+	}
+
+	srcPoint := new(Location)
+	res := make(Locations, 0, len(web))
+	for _, u := range web {
+		srcRec, err := srcPoint.ScanFromWeb(u, mapper)
+		if err != nil {
+			return nil, err
+		}
+		res = append(res, srcRec)
+	}
+	return res, nil
+}

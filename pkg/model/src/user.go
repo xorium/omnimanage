@@ -107,3 +107,20 @@ func (m Users) ToWeb(mapper *mapper.ModelMapper) ([]*webmodels.User, error) {
 	}
 	return omniM, nil
 }
+
+func (m Users) ScanFromWeb(web []*webmodels.User, mapper *mapper.ModelMapper) (Users, error) {
+	if len(web) == 0 {
+		return nil, nil
+	}
+
+	srcPoint := new(User)
+	res := make(Users, 0, len(web))
+	for _, u := range web {
+		srcRec, err := srcPoint.ScanFromWeb(u, mapper)
+		if err != nil {
+			return nil, err
+		}
+		res = append(res, srcRec)
+	}
+	return res, nil
+}

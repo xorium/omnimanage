@@ -163,9 +163,9 @@ func (m *ModelMapper) GetModelMaps(srcModel interface{}) (modelMaps []*ModelMap,
 	return modelMaps, nil
 }
 
-type ISrcModel interface {
-	//GetModelMapper() []*ModelMap
-}
+//type ISrcModel interface {
+//	//GetModelMapper() []*ModelMap
+//}
 
 func GetModelMapBySrcName(name string, m []*ModelMap) *ModelMap {
 	for _, val := range m {
@@ -307,7 +307,7 @@ func CallMethodWith2Output(any interface{}, name string, args ...interface{}) (o
 	return results[0], nil
 }
 
-func (m *ModelMapper) ConvertWebToSrc(web interface{}, src ISrcModel) (errOut error) {
+func (m *ModelMapper) ConvertWebToSrc(web interface{}, src interface{}) (errOut error) {
 	defer func() {
 		if r := recover(); r != nil {
 			errOut = fmt.Errorf("panic: %v", r)
@@ -348,7 +348,7 @@ func (m *ModelMapper) ConvertWebToSrc(web interface{}, src ISrcModel) (errOut er
 					continue
 				}
 
-				resInv, err := CallMethodWith2Output(srcField.Value(), MethodNameScanFromWeb, webField.Value())
+				resInv, err := CallMethodWith2Output(srcField.Value(), MethodNameScanFromWeb, webField.Value(), m)
 				if err != nil {
 					return fmt.Errorf("Error in converting %v : %v", val.WebName, err)
 				}
@@ -401,7 +401,7 @@ func (m *ModelMapper) ConvertWebToSrc(web interface{}, src ISrcModel) (errOut er
 //	return maps, nil
 //}
 
-func (m *ModelMapper) GetSrcID(webID string, srcModel ISrcModel) (idOut int, errOut error) {
+func (m *ModelMapper) GetSrcID(webID string, srcModel interface{}) (idOut int, errOut error) {
 	defer func() {
 		if r := recover(); r != nil {
 			errOut = fmt.Errorf("%w: panic - %v", omniErr.ErrInternal, r)

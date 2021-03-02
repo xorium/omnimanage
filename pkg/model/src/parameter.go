@@ -7,12 +7,12 @@ import (
 )
 
 type Parameter struct {
-	ID                int `gorm:"primaryKey"`
-	Name              string
-	Description       string
-	Type              string
-	IsValuesSetFinite bool
-	Info              datatypes.JSON
+	ID                int            `gorm:"primaryKey" omni:"ID;src:ID2src;web:ID2web"`
+	Name              string         `omni:"Name"`
+	Description       string         `omni:"Description"`
+	Type              string         `omni:"Type"`
+	IsValuesSetFinite bool           `omni:"IsValuesSetFinite"`
+	Info              datatypes.JSON `omni:"Info;src:JSON2src;web:JSON2web"`
 }
 
 type Parameters []*Parameter
@@ -68,6 +68,16 @@ func (m *Parameter) ToWeb(mapper *mapper.ModelMapper) (*webmodels.Parameter, err
 	return web, nil
 }
 
+func (*Parameter) ScanFromWeb(web *webmodels.Parameter, mapper *mapper.ModelMapper) (*Parameter, error) {
+	m := new(Parameter)
+	err := mapper.ConvertWebToSrc(web, m)
+	if err != nil {
+		return nil, err
+	}
+
+	return m, nil
+}
+
 func (m Parameters) ToWeb(mapper *mapper.ModelMapper) ([]*webmodels.Parameter, error) {
 	if m == nil {
 		return nil, nil
@@ -81,4 +91,21 @@ func (m Parameters) ToWeb(mapper *mapper.ModelMapper) ([]*webmodels.Parameter, e
 		omniM = append(omniM, webObj)
 	}
 	return omniM, nil
+}
+
+func (m Parameters) ScanFromWeb(web []*webmodels.Parameter, mapper *mapper.ModelMapper) (Parameters, error) {
+	if len(web) == 0 {
+		return nil, nil
+	}
+
+	srcPoint := new(Parameter)
+	res := make(Parameters, 0, len(web))
+	for _, u := range web {
+		srcRec, err := srcPoint.ScanFromWeb(u, mapper)
+		if err != nil {
+			return nil, err
+		}
+		res = append(res, srcRec)
+	}
+	return res, nil
 }

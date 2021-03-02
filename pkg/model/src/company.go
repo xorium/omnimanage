@@ -10,6 +10,8 @@ type Company struct {
 	Name string `omni:"Name"`
 }
 
+type Companies []*Company
+
 func (Company) TableName() string {
 	return "companies"
 }
@@ -60,4 +62,19 @@ func (*Company) ScanFromWeb(web *webmodels.Company, mapper *mapper.ModelMapper) 
 	}
 
 	return m, nil
+}
+
+func (m Companies) ToWeb(mapper *mapper.ModelMapper) ([]*webmodels.Company, error) {
+	if m == nil {
+		return nil, nil
+	}
+	omniM := make([]*webmodels.Company, 0, 5)
+	for _, u := range m {
+		webM, err := u.ToWeb(mapper)
+		if err != nil {
+			return nil, err
+		}
+		omniM = append(omniM, webM)
+	}
+	return omniM, nil
 }

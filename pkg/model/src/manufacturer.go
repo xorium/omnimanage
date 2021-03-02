@@ -7,9 +7,9 @@ import (
 )
 
 type Manufacturer struct {
-	ID   int `gorm:"primaryKey"`
-	Name string
-	Info datatypes.JSON
+	ID   int            `gorm:"primaryKey" omni:"ID;src:ID2src;web:ID2web"`
+	Name string         `omni:"Name"`
+	Info datatypes.JSON `omni:"Info;src:JSON2src;web:JSON2web"`
 }
 
 type Manufacturers []*Manufacturer
@@ -63,6 +63,16 @@ func (m *Manufacturer) ToWeb(mapper *mapper.ModelMapper) (*webmodels.Manufacture
 	return web, nil
 }
 
+func (*Manufacturer) ScanFromWeb(web *webmodels.Manufacturer, mapper *mapper.ModelMapper) (*Manufacturer, error) {
+	m := new(Manufacturer)
+	err := mapper.ConvertWebToSrc(web, m)
+	if err != nil {
+		return nil, err
+	}
+
+	return m, nil
+}
+
 func (m Manufacturers) ToWeb(mapper *mapper.ModelMapper) ([]*webmodels.Manufacturer, error) {
 	if m == nil {
 		return nil, nil
@@ -76,4 +86,21 @@ func (m Manufacturers) ToWeb(mapper *mapper.ModelMapper) ([]*webmodels.Manufactu
 		omniM = append(omniM, webU)
 	}
 	return omniM, nil
+}
+
+func (m Manufacturers) ScanFromWeb(web []*webmodels.Manufacturer, mapper *mapper.ModelMapper) (Manufacturers, error) {
+	if len(web) == 0 {
+		return nil, nil
+	}
+
+	srcPoint := new(Manufacturer)
+	res := make(Manufacturers, 0, len(web))
+	for _, u := range web {
+		srcRec, err := srcPoint.ScanFromWeb(u, mapper)
+		if err != nil {
+			return nil, err
+		}
+		res = append(res, srcRec)
+	}
+	return res, nil
 }

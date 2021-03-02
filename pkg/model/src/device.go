@@ -8,24 +8,24 @@ import (
 
 /////////////////////////////// Device
 type Device struct {
-	ID          int `gorm:"primaryKey"`
-	Name        string
-	Slug        string
-	Title       string
-	Description string
-	Kind        string
-	Info        datatypes.JSON
-	Image       string
+	ID          int            `gorm:"primaryKey"`
+	Name        string         `omni:"Name"`
+	Slug        string         `omni:"Slug"`
+	Title       string         `omni:"Title"`
+	Description string         `omni:"Description"`
+	Kind        string         `omni:"Kind"`
+	Info        datatypes.JSON `omni:"Info;src:JSON2src;web:JSON2web"`
+	Image       string         `omni:"Image"`
 	CompanyID   int
-	Company     *Company `gorm:"foreignKey:CompanyID"`
+	Company     *Company `gorm:"foreignKey:CompanyID" omni:"Company"`
 	ModelID     int
-	Model       *DeviceModel `gorm:"foreignkey:ModelID"`
+	Model       *DeviceModel `gorm:"foreignkey:ModelID" omni:"Model"`
 	LocationID  int
-	Location    *Location    `gorm:"foreignKey:LocationID"`
-	Groups      DeviceGroups `gorm:"many2many:device_group;joinForeignKey:DevicesID;JoinReferences:groups_id"`
+	Location    *Location    `gorm:"foreignKey:LocationID" omni:"Location"`
+	Groups      DeviceGroups `gorm:"many2many:device_group;joinForeignKey:DevicesID;JoinReferences:groups_id" omni:"Groups"`
 	ParentID    int
-	Parent      *Device `gorm:"foreignkey:ParentID"`
-	Rules       Rules   `gorm:"many2many:rules_devices;joinForeignKey:DeviceID;JoinReferences:rule_id"`
+	Parent      *Device `gorm:"foreignkey:ParentID" omni:"Parent"`
+	Rules       Rules   `gorm:"many2many:rules_devices;joinForeignKey:DeviceID;JoinReferences:rule_id" omni:"Rules"`
 }
 
 type Devices []*Device
@@ -88,6 +88,16 @@ func (m *Device) ToWeb(mapper *mapper.ModelMapper) (*webmodels.Device, error) {
 	return web, nil
 }
 
+func (*Device) ScanFromWeb(web *webmodels.Device, mapper *mapper.ModelMapper) (*Device, error) {
+	m := new(Device)
+	err := mapper.ConvertWebToSrc(web, m)
+	if err != nil {
+		return nil, err
+	}
+
+	return m, nil
+}
+
 func (m Devices) ToWeb(mapper *mapper.ModelMapper) ([]*webmodels.Device, error) {
 	if m == nil {
 		return nil, nil
@@ -103,18 +113,35 @@ func (m Devices) ToWeb(mapper *mapper.ModelMapper) ([]*webmodels.Device, error) 
 	return omniM, nil
 }
 
+func (m Devices) ScanFromWeb(web []*webmodels.Device, mapper *mapper.ModelMapper) (Devices, error) {
+	if len(web) == 0 {
+		return nil, nil
+	}
+
+	srcPoint := new(Device)
+	res := make(Devices, 0, len(web))
+	for _, u := range web {
+		srcRec, err := srcPoint.ScanFromWeb(u, mapper)
+		if err != nil {
+			return nil, err
+		}
+		res = append(res, srcRec)
+	}
+	return res, nil
+}
+
 ///////////////////////////// DeviceGroup
 type DeviceGroup struct {
-	ID          int
-	Name        string
-	Description string
-	Type        string
-	Filters     datatypes.JSON
+	ID          int            `omni:"ID;src:ID2src;web:ID2web"`
+	Name        string         `omni:"Name"`
+	Description string         `omni:"Description"`
+	Type        string         `omni:"Type"`
+	Filters     datatypes.JSON `omni:"Filters;src:JSON2src;web:JSON2web"`
 	CompanyID   int
-	Company     *Company `gorm:"foreignKey:CompanyID"`
-	Devices     Devices  `gorm:"many2many:device_group;joinForeignKey:GroupsID;JoinReferences:devices_id"`
+	Company     *Company `gorm:"foreignKey:CompanyID" omni:"Company"`
+	Devices     Devices  `gorm:"many2many:device_group;joinForeignKey:GroupsID;JoinReferences:devices_id" omni:"Devices"`
 	UserID      int
-	User        *User `gorm:"foreignKey:UserID"`
+	User        *User `gorm:"foreignKey:UserID" omni:"User"`
 }
 
 type DeviceGroups []*DeviceGroup
@@ -173,6 +200,16 @@ func (m *DeviceGroup) ToWeb(mapper *mapper.ModelMapper) (*webmodels.DeviceGroup,
 	return web, nil
 }
 
+func (*DeviceGroup) ScanFromWeb(web *webmodels.DeviceGroup, mapper *mapper.ModelMapper) (*DeviceGroup, error) {
+	m := new(DeviceGroup)
+	err := mapper.ConvertWebToSrc(web, m)
+	if err != nil {
+		return nil, err
+	}
+
+	return m, nil
+}
+
 func (m DeviceGroups) ToWeb(mapper *mapper.ModelMapper) ([]*webmodels.DeviceGroup, error) {
 	if m == nil {
 		return nil, nil
@@ -188,14 +225,31 @@ func (m DeviceGroups) ToWeb(mapper *mapper.ModelMapper) ([]*webmodels.DeviceGrou
 	return omniM, nil
 }
 
+func (m DeviceGroups) ScanFromWeb(web []*webmodels.DeviceGroup, mapper *mapper.ModelMapper) (DeviceGroups, error) {
+	if len(web) == 0 {
+		return nil, nil
+	}
+
+	srcPoint := new(DeviceGroup)
+	res := make(DeviceGroups, 0, len(web))
+	for _, u := range web {
+		srcRec, err := srcPoint.ScanFromWeb(u, mapper)
+		if err != nil {
+			return nil, err
+		}
+		res = append(res, srcRec)
+	}
+	return res, nil
+}
+
 /////////////////////////////// DeviceModel
 type DeviceModel struct {
-	ID             int `gorm:"primaryKey"`
-	Name           string
-	Title          string
-	Description    string
+	ID             int    `gorm:"primaryKey" omni:"ID;src:ID2src;web:ID2web"`
+	Name           string `omni:"Name"`
+	Title          string `omni:"Title"`
+	Description    string `omni:"Description"`
 	ManufacturerID int
-	Manufacturer   *Manufacturer `gorm:"foreignkey:ManufacturerID"`
+	Manufacturer   *Manufacturer `gorm:"foreignkey:ManufacturerID" omni:"Manufacturer"`
 }
 
 type DeviceModels []*DeviceModel
@@ -240,6 +294,16 @@ func (m *DeviceModel) ToWeb(mapper *mapper.ModelMapper) (*webmodels.DeviceModel,
 	return web, nil
 }
 
+func (*DeviceModel) ScanFromWeb(web *webmodels.DeviceModel, mapper *mapper.ModelMapper) (*DeviceModel, error) {
+	m := new(DeviceModel)
+	err := mapper.ConvertWebToSrc(web, m)
+	if err != nil {
+		return nil, err
+	}
+
+	return m, nil
+}
+
 func (m DeviceModels) ToWeb(mapper *mapper.ModelMapper) ([]*webmodels.DeviceModel, error) {
 	if m == nil {
 		return nil, nil
@@ -253,4 +317,21 @@ func (m DeviceModels) ToWeb(mapper *mapper.ModelMapper) ([]*webmodels.DeviceMode
 		omniM = append(omniM, webU)
 	}
 	return omniM, nil
+}
+
+func (m DeviceModels) ScanFromWeb(web []*webmodels.DeviceModel, mapper *mapper.ModelMapper) (DeviceModels, error) {
+	if len(web) == 0 {
+		return nil, nil
+	}
+
+	srcPoint := new(DeviceModel)
+	res := make(DeviceModels, 0, len(web))
+	for _, u := range web {
+		srcRec, err := srcPoint.ScanFromWeb(u, mapper)
+		if err != nil {
+			return nil, err
+		}
+		res = append(res, srcRec)
+	}
+	return res, nil
 }

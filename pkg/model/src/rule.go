@@ -1,26 +1,24 @@
 package src
 
 import (
-	"fmt"
 	"gorm.io/datatypes"
 	"omnimanage/pkg/mapper"
-	omnimodels "omnimanage/pkg/model/web"
-	"strconv"
+	webmodels "omnimanage/pkg/model/web"
 )
 
 type Rule struct {
-	ID                int `gorm:"primaryKey"`
-	Title             string
-	Slug              string
-	Expression        datatypes.JSON
+	ID                int            `gorm:"primaryKey" omni:"ID;src:ID2src;web:ID2web"`
+	Title             string         `omni:"Title"`
+	Slug              string         `omni:"Slug"`
+	Expression        datatypes.JSON `omni:"Expression;src:JSON2src;web:JSON2web"`
 	Duration          int
-	EventLevel        string
-	EventSessionState string
-	RuleGroup         string
+	EventLevel        string `omni:"EventLevel"`
+	EventSessionState string `omni:"EventSessionState"`
+	RuleGroup         string `omni:"RuleGroup"`
 	CompanyID         int
-	Company           *Company   `gorm:"foreignKey:CompanyID"`
-	Devices           Devices    `gorm:"many2many:rules_devices;joinForeignKey:RuleID;JoinReferences:device_id"`
-	Params            Parameters `gorm:"many2many:rules_parameters;joinForeignKey:RuleID;JoinReferences:parameter_id"`
+	Company           *Company   `gorm:"foreignKey:CompanyID" omni:"Company"`
+	Devices           Devices    `gorm:"many2many:rules_devices;joinForeignKey:RuleID;JoinReferences:device_id" omni:"Devices"`
+	Params            Parameters `gorm:"many2many:rules_parameters;joinForeignKey:RuleID;JoinReferences:parameter_id" omni:"Parameters"`
 }
 type Rules []*Rule
 
@@ -71,8 +69,8 @@ type Rules []*Rule
 //	}
 //}
 
-func (m *Rule) ToWeb(mapper *mapper.ModelMapper) (*omnimodels.Rule, error) {
-	web := new(omnimodels.Rule)
+func (m *Rule) ToWeb(mapper *mapper.ModelMapper) (*webmodels.Rule, error) {
+	web := new(webmodels.Rule)
 
 	err := mapper.ConvertSrcToWeb(m, &web)
 	if err != nil {
@@ -81,21 +79,20 @@ func (m *Rule) ToWeb(mapper *mapper.ModelMapper) (*omnimodels.Rule, error) {
 	return web, nil
 }
 
-func (m *Rule) ScanFromWeb(us *omnimodels.Rule, mapper *mapper.ModelMapper) error {
-	var err error
-	m.ID, err = strconv.Atoi(us.ID)
+func (*Rule) ScanFromWeb(web *webmodels.Rule, mapper *mapper.ModelMapper) (*Rule, error) {
+	m := new(Rule)
+	err := mapper.ConvertWebToSrc(web, m)
 	if err != nil {
-		return fmt.Errorf("Wrong User ID: %v", us.ID)
+		return nil, err
 	}
-
-	return nil
+	return m, nil
 }
 
-func (m Rules) ToWeb(mapper *mapper.ModelMapper) ([]*omnimodels.Rule, error) {
+func (m Rules) ToWeb(mapper *mapper.ModelMapper) ([]*webmodels.Rule, error) {
 	if m == nil {
 		return nil, nil
 	}
-	omniM := make([]*omnimodels.Rule, 0, 5)
+	omniM := make([]*webmodels.Rule, 0, 5)
 	for _, u := range m {
 		webU, err := u.ToWeb(mapper)
 		if err != nil {
@@ -104,4 +101,21 @@ func (m Rules) ToWeb(mapper *mapper.ModelMapper) ([]*omnimodels.Rule, error) {
 		omniM = append(omniM, webU)
 	}
 	return omniM, nil
+}
+
+func (m Rules) ScanFromWeb(web []*webmodels.Rule, mapper *mapper.ModelMapper) (Rules, error) {
+	if len(web) == 0 {
+		return nil, nil
+	}
+
+	srcPoint := new(Rule)
+	res := make(Rules, 0, len(web))
+	for _, u := range web {
+		srcRec, err := srcPoint.ScanFromWeb(u, mapper)
+		if err != nil {
+			return nil, err
+		}
+		res = append(res, srcRec)
+	}
+	return res, nil
 }

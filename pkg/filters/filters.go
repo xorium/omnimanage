@@ -44,7 +44,7 @@ var OperatorsMap = map[string]string{
 }
 
 // filter schema: filter[relation.relation_field][operator]=value
-func ParseFiltersFromQueryToSrcModel(queryStr string, m *mapper.ModelMapper, modelWeb interface{}, modelSrc mapper.ISrcModel) ([]*Filter, error) {
+func ParseFiltersFromQueryToSrcModel(queryStr string, m *mapper.ModelMapper, modelWeb interface{}, modelSrc interface{}) ([]*Filter, error) {
 	filtersStrings, err := ParseQueryString(queryStr, modelWeb)
 	if err != nil {
 		return nil, err
@@ -114,7 +114,7 @@ func ParseQueryString(queryStr string, modelWeb interface{}) ([]*Filter, error) 
 
 }
 
-func TransformWebToSrc(filtersIn []*Filter, m *mapper.ModelMapper, modelWeb interface{}, modelSrc mapper.ISrcModel) (out []*Filter, errOut error) {
+func TransformWebToSrc(filtersIn []*Filter, m *mapper.ModelMapper, modelWeb interface{}, modelSrc interface{}) (out []*Filter, errOut error) {
 	if filtersIn == nil {
 		return nil, nil
 	}
