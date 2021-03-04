@@ -19,9 +19,9 @@ type User struct {
 	CompanyID     int
 	Company       *Company `gorm:"foreignKey:CompanyID" omni:"Company"`
 	LocationID    int
-	Location      *Location       `gorm:"foreignKey:LocationID" omni:"Location"`
-	Roles         Roles           `gorm:"many2many:user_role;joinForeignKey:UsersID;JoinReferences:roles_id" omni:"Roles"`
-	Subscriptions []*Subscription `gorm:"foreignKey:UserID"`
+	Location      *Location     `gorm:"foreignKey:LocationID" omni:"Location"`
+	Roles         Roles         `gorm:"many2many:user_role;joinForeignKey:UsersID;JoinReferences:roles_id" omni:"Roles"`
+	Subscriptions Subscriptions `gorm:"foreignKey:UserID" omni:"Subscriptions"`
 }
 
 type Users []*User

@@ -7,12 +7,13 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 	"log"
 	"net/http"
+	"omnimanage/internal/config"
 	"omnimanage/internal/controller"
 	omnimiddleware "omnimanage/internal/middleware"
 	"omnimanage/internal/store"
-	"omnimanage/internal/validator"
 	omniErr "omnimanage/pkg/error"
 	"omnimanage/pkg/mapper"
 	"os"
@@ -31,13 +32,16 @@ func run() error {
 	//ctx := context.Background()
 
 	// config
-	// ...
+	cfg, err := config.Get("")
+	if err != nil {
+		log.Fatal("can't read config: %v", err)
+	}
 
 	// logger
 	// ...
 
 	// init store
-	db, err := getDB()
+	db, err := getDB(cfg)
 	if err != nil {
 		return err
 	}
@@ -52,8 +56,25 @@ func run() error {
 
 	// Init echo instance
 	e := echo.New()
-	e.Validator = validator.NewValidator()
+	e.Debug = cfg.App.Debug
+	//e.Validator = validator.NewValidator()
 	e.HTTPErrorHandler = omniErr.ErrHandler
+
+	// ADMIN
+	//{
+	//	Admin := admin.New(&admin.AdminConfig{
+	//		//DB: db.,
+	//	})
+	//
+	//	Admin.AddResource(&src.User{})
+	//	Admin.AddResource(&src.Role{})
+	//	Admin.AddResource(&src.Location{})
+	//	Admin.AddResource(&src.Company{})
+	//
+	//	adminHandler := echo.WrapHandler(Admin.NewServeMux("/admin"))
+	//	e.GET("/admin", adminHandler)
+	//	e.Any("/admin/*", adminHandler)
+	//}
 
 	// Middleware
 	e.Use(
@@ -98,9 +119,9 @@ func run() error {
 
 	// Start Server
 	s := &http.Server{
-		Addr:         ":8081",          // -> to config
-		ReadTimeout:  10 * time.Minute, // -> to config
-		WriteTimeout: 10 * time.Minute, // -> to config
+		Addr:         cfg.Server.Host + ":" + cfg.Server.Port,
+		ReadTimeout:  time.Millisecond * time.Duration(cfg.Server.ReadTimeoutMSec),
+		WriteTimeout: time.Millisecond * time.Duration(cfg.Server.ReadTimeoutMSec),
 	}
 
 	go func() {
@@ -122,15 +143,19 @@ func run() error {
 	return nil
 }
 
-func getDB() (*gorm.DB, error) {
+func getDB(cfg *config.Config) (*gorm.DB, error) {
 	dsn := fmt.Sprintf(
 		"host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
-		"127.0.0.1",
-		"5433",
-		"db_user",
-		"tYSk4dqaW7Hq4cw2r4hP",
-		"omnimanage_db",
+		cfg.DB.Host,
+		cfg.DB.Port,
+		cfg.DB.User,
+		cfg.DB.Password,
+		cfg.DB.Name,
 	)
 
-	return gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	gormConf := &gorm.Config{}
+	if cfg.App.Debug {
+		gormConf.Logger = logger.Default.LogMode(logger.Info)
+	}
+	return gorm.Open(postgres.Open(dsn), gormConf)
 }

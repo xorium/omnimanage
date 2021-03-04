@@ -20,7 +20,7 @@ func NewRoleRepo(db *gorm.DB) *RoleRepo {
 }
 
 func (r *RoleRepo) GetOne(ctx context.Context, id int) (*src.Role, error) {
-	db := r.db.Debug().WithContext(ctx)
+	db := r.db.WithContext(ctx)
 
 	rec := new(src.Role)
 	dbResult := db.Where("id = ?", id).Preload(clause.Associations).First(rec)
@@ -36,7 +36,7 @@ func (r *RoleRepo) GetOne(ctx context.Context, id int) (*src.Role, error) {
 func (r *RoleRepo) GetList(ctx context.Context, f []*filters.Filter) (src.Roles, error) {
 	res := make([]*src.Role, 0, 1)
 
-	db := r.db.Debug().WithContext(ctx)
+	db := r.db.WithContext(ctx)
 	db, err := filters.SetGormFilters(db, &res, f)
 	if err != nil {
 		return nil, fmt.Errorf("%w %v", omnierror.ErrInternal, err)
@@ -56,7 +56,7 @@ func (r *RoleRepo) GetList(ctx context.Context, f []*filters.Filter) (src.Roles,
 
 func (r *RoleRepo) Create(ctx context.Context, modelIn *src.Role) (*src.Role, error) {
 
-	db := r.db.Debug().WithContext(ctx)
+	db := r.db.WithContext(ctx)
 
 	tmpRec := new(src.Role)
 	dbResult := db.Where("id = ?", modelIn.ID).First(tmpRec)
@@ -76,7 +76,7 @@ func (r *RoleRepo) Create(ctx context.Context, modelIn *src.Role) (*src.Role, er
 }
 
 func (r *RoleRepo) Update(ctx context.Context, modelIn *src.Role) (*src.Role, error) {
-	db := r.db.Debug().WithContext(ctx)
+	db := r.db.WithContext(ctx)
 
 	tmpRec := new(src.Role)
 	dbResult := db.Where("id = ?", modelIn.ID).First(tmpRec)

@@ -1,0 +1,14 @@
+# Server configurations
+server:
+  host: "localhost"
+  port: 8000
+  readtimeoutmsec: 600000
+  writetimeoutmsec: 600000
+
+# Database credentials
+db:
+  host: "127.0.0.1"
+  port: "5433"
+  user: "db_user"
+  pass: "tYSk4dqaW7Hq4cw2r4hP"
+  name: "omnimanage_db"

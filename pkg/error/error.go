@@ -16,6 +16,7 @@ const (
 	ErrTitleResourceExists   = "RESOURCE_OBJECT_EXISTS"
 	ErrTitleBadRequest       = "BAD_REQUEST"
 	ErrTitleInternal         = "INTERNAL"
+	ErrTitleValidation       = "VALIDATION_ERROR"
 )
 
 var (
@@ -24,6 +25,7 @@ var (
 	ErrNoAuth           = errors.New("authorization required")
 	ErrBadRequest       = errors.New("bad request")
 	ErrInternal         = errors.New("internal error")
+	ErrValidation       = errors.New("validation error")
 )
 
 func MakeSliceJSONAPI(errObj *jsonapi.ErrorObject) []*jsonapi.ErrorObject {

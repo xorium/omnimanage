@@ -6,6 +6,7 @@ import (
 	"github.com/pkg/errors"
 	"net/http"
 	"omnimanage/internal/store"
+	"omnimanage/internal/validator"
 	omniErr "omnimanage/pkg/error"
 	filt "omnimanage/pkg/filters"
 	"omnimanage/pkg/mapper"
@@ -121,19 +122,25 @@ func (ctr *UserController) GetRelation(ctx echo.Context) error {
 	relName := ctx.Param("rel")
 	switch relName {
 	case "location":
-		//loc, err := ctr.store.Locations.GetOne(ctx.Request().Context(), user.LocationID)
-		//if err != nil {
-		//	return echo.NewHTTPError(http.StatusBadRequest, err)
-		//}
-		//web, err := loc.ToWeb()
-		//if err != nil {
-		//	return echo.NewHTTPError(http.StatusBadRequest, err)
-		//}
-		//err = httpUtils.SetResponse(ctx, http.StatusOK, web)
-		//if err != nil {
-		//	return omniErr.NewHTTPError(ctx, http.StatusInternalServerError,
-		//		omniErr.ErrCodeInternal, omniErr.ErrTitleInternal, err)
-		//}
+		loc, err := ctr.store.Locations.GetOne(ctx.Request().Context(), user.LocationID)
+		if err != nil {
+			switch {
+			case errors.Cause(err) == omniErr.ErrResourceNotFound:
+				return omniErr.NewHTTPError(http.StatusNotFound, omniErr.ErrTitleResourceNotFound, err)
+			default:
+				return omniErr.NewHTTPError(http.StatusInternalServerError, omniErr.ErrTitleInternal, err)
+			}
+		}
+
+		web, err := loc.ToWeb(ctr.mapper)
+		if err != nil {
+			return omniErr.NewHTTPError(http.StatusInternalServerError, omniErr.ErrTitleInternal, err)
+		}
+		err = httpUtils.SetResponse(ctx, http.StatusOK, web)
+		if err != nil {
+			return omniErr.NewHTTPError(http.StatusInternalServerError, omniErr.ErrTitleInternal, err)
+		}
+
 	case "roles":
 		srcFilters, err := filt.GetSrcFiltersFromRelationID(user.Roles)
 		if err != nil {
@@ -183,6 +190,34 @@ func (ctr *UserController) ModifyRelation(ctx echo.Context) error {
 	webRelName := ctx.Param("rel")
 	switch webRelName {
 	case "location":
+		webModel := new(webmodels.Location)
+		err := httpUtils.UnmarshalFromRequest(webModel, ctx.Request().Body)
+		if err != nil {
+			return omniErr.NewHTTPError(http.StatusBadRequest, omniErr.ErrTitleBadRequest, err)
+		}
+
+		srcModelsNew, err := new(src.Location).ScanFromWeb(webModel, ctr.mapper)
+		if err != nil {
+			return omniErr.NewHTTPError(http.StatusBadRequest, omniErr.ErrTitleResourceNotFound, err)
+		}
+
+		srcRelName := "Location"
+		switch ctx.Request().Method {
+		case http.MethodPatch:
+			err = ctr.store.Users.ReplaceRelation(ctx.Request().Context(), idSrc, srcRelName, srcModelsNew)
+		case http.MethodPost:
+			err = ctr.store.Users.AppendRelation(ctx.Request().Context(), idSrc, srcRelName, srcModelsNew)
+		case http.MethodDelete:
+			err = ctr.store.Users.DeleteRelation(ctx.Request().Context(), idSrc, srcRelName, srcModelsNew)
+		}
+		if err != nil {
+			switch {
+			case errors.Cause(err) == omniErr.ErrResourceNotFound:
+				return omniErr.NewHTTPError(http.StatusNotFound, omniErr.ErrTitleResourceNotFound, err)
+			default:
+				return omniErr.NewHTTPError(http.StatusInternalServerError, omniErr.ErrTitleInternal, err)
+			}
+		}
 
 	case "roles":
 
@@ -197,7 +232,7 @@ func (ctr *UserController) ModifyRelation(ctx echo.Context) error {
 			return omniErr.NewHTTPError(http.StatusInternalServerError, omniErr.ErrTitleInternal, err)
 		}
 
-		srcModelsNew, err := src.Roles{}.ScanFromWeb(webModels, ctr.mapper)
+		srcModelsNew, err := src.Roles.ScanFromWeb(nil, webModels, ctr.mapper)
 		if err != nil {
 			return omniErr.NewHTTPError(http.StatusBadRequest, omniErr.ErrTitleResourceNotFound, err)
 		}
@@ -212,7 +247,12 @@ func (ctr *UserController) ModifyRelation(ctx echo.Context) error {
 			err = ctr.store.Users.DeleteRelation(ctx.Request().Context(), idSrc, srcRelName, srcModelsNew)
 		}
 		if err != nil {
-			return omniErr.NewHTTPError(http.StatusInternalServerError, omniErr.ErrTitleInternal, err)
+			switch {
+			case errors.Cause(err) == omniErr.ErrResourceNotFound:
+				return omniErr.NewHTTPError(http.StatusNotFound, omniErr.ErrTitleResourceNotFound, err)
+			default:
+				return omniErr.NewHTTPError(http.StatusInternalServerError, omniErr.ErrTitleInternal, err)
+			}
 		}
 
 	default:
@@ -230,6 +270,11 @@ func (ctr *UserController) Create(ctx echo.Context) error {
 	err := httpUtils.UnmarshalFromRequest(webModel, ctx.Request().Body)
 	if err != nil {
 		return omniErr.NewHTTPError(http.StatusBadRequest, omniErr.ErrTitleResourceNotFound, err)
+	}
+
+	err = validator.Validate(webModel)
+	if err != nil {
+		return omniErr.NewHTTPError(http.StatusUnprocessableEntity, omniErr.ErrTitleResourceNotFound, err)
 	}
 
 	srcUser, err := new(src.User).ScanFromWeb(webModel, ctr.mapper)

@@ -45,6 +45,9 @@ func NewModelMapper() *ModelMapper {
 				if !ok {
 					return 0, fmt.Errorf("ID: Wrong type '%T', value %v", web, web)
 				}
+				if len(w) == 0 {
+					return 0, nil
+				}
 				id, err := strconv.Atoi(w)
 				if err != nil {
 					return 0, err

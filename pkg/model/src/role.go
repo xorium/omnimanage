@@ -72,7 +72,7 @@ func (m *Role) ToWeb(mapper *mapper.ModelMapper) (*webmodels.Role, error) {
 	return web, nil
 }
 
-func (*Role) ScanFromWeb(web *webmodels.Role, mapper *mapper.ModelMapper) (*Role, error) {
+func (Role) ScanFromWeb(web *webmodels.Role, mapper *mapper.ModelMapper) (*Role, error) {
 	m := new(Role)
 	err := mapper.ConvertWebToSrc(web, m)
 	if err != nil {

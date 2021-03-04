@@ -1,20 +1,45 @@
 package validator
 
-type Validator struct {
-	//validator *validator.Validate
-}
+import (
+	"fmt"
+	"github.com/go-playground/validator"
+	"sync"
+)
 
-func NewValidator() *Validator {
-	return &Validator{}
-}
+//type Validator struct {
+//	//validator *validator.Validate
+//}
+//
+//func NewValidator() *Validator {
+//	return &Validator{}
+//}
+//
+//// Validate implements the echo framework validator interface.
+//func (val *Validator) Validate(i interface{}) error {
+//	//err := val.validator.Struct(i)
+//	//if err == nil {
+//	//	return nil
+//	//}
+//	//err = errors.New(strings.Replace(err.Error(), "\n", ", ", -1))
+//	//return err
+//	return nil
+//}
 
-// Validate implements the echo framework validator interface.
-func (val *Validator) Validate(i interface{}) error {
-	//err := val.validator.Struct(i)
-	//if err == nil {
-	//	return nil
-	//}
-	//err = errors.New(strings.Replace(err.Error(), "\n", ", ", -1))
-	//return err
+// use a single instance of Validate, it caches struct info
+var (
+	validate *validator.Validate
+	once     sync.Once
+)
+
+func Validate(s interface{}) error {
+	once.Do(func() {
+		validate = validator.New()
+	})
+
+	err := validate.Struct(s)
+	if err != nil {
+		return fmt.Errorf("%w: %v", err.Error())
+	}
+
 	return nil
 }

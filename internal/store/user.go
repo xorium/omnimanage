@@ -20,7 +20,7 @@ func NewUserRepo(db *gorm.DB) *UserRepo {
 }
 
 func (r *UserRepo) GetOne(ctx context.Context, id int) (*src.User, error) {
-	db := r.db.Debug().WithContext(ctx)
+	db := r.db.WithContext(ctx)
 
 	rec := new(src.User)
 	dbResult := db.Where("id = ?", id).Preload(clause.Associations).First(rec)
@@ -36,7 +36,7 @@ func (r *UserRepo) GetOne(ctx context.Context, id int) (*src.User, error) {
 func (r *UserRepo) GetList(ctx context.Context, f []*filters.Filter) (src.Users, error) {
 	res := make([]*src.User, 0, 1)
 
-	db := r.db.Debug().WithContext(ctx)
+	db := r.db.WithContext(ctx)
 	db, err := filters.SetGormFilters(db, &res, f)
 	if err != nil {
 		return nil, fmt.Errorf("%w %v", omnierror.ErrInternal, err)
@@ -56,7 +56,7 @@ func (r *UserRepo) GetList(ctx context.Context, f []*filters.Filter) (src.Users,
 
 func (r *UserRepo) Create(ctx context.Context, modelIn *src.User) (*src.User, error) {
 
-	db := r.db.Debug().WithContext(ctx)
+	db := r.db.WithContext(ctx)
 
 	tmpRec := new(src.User)
 	dbResult := db.Where("id = ?", modelIn.ID).First(tmpRec)
@@ -76,7 +76,7 @@ func (r *UserRepo) Create(ctx context.Context, modelIn *src.User) (*src.User, er
 }
 
 func (r *UserRepo) Update(ctx context.Context, modelIn *src.User) (*src.User, error) {
-	db := r.db.Debug().WithContext(ctx)
+	db := r.db.WithContext(ctx)
 
 	tmpRec := new(src.User)
 	dbResult := db.Where("id = ?", modelIn.ID).First(tmpRec)
@@ -97,7 +97,7 @@ func (r *UserRepo) Update(ctx context.Context, modelIn *src.User) (*src.User, er
 }
 
 func (r *UserRepo) Delete(ctx context.Context, id int) error {
-	db := r.db.Debug().WithContext(ctx)
+	db := r.db.WithContext(ctx)
 
 	dbResult := db.Delete(&src.User{}, id)
 	if dbResult.Error != nil {
@@ -110,7 +110,7 @@ func (r *UserRepo) Delete(ctx context.Context, id int) error {
 }
 
 func (r *UserRepo) ReplaceRelation(ctx context.Context, id int, relationName string, relationData interface{}) error {
-	db := r.db.Debug().WithContext(ctx)
+	db := r.db.WithContext(ctx)
 
 	err := db.Model(&src.User{ID: id}).Association(relationName).Replace(relationData)
 	if err != nil {
@@ -121,7 +121,7 @@ func (r *UserRepo) ReplaceRelation(ctx context.Context, id int, relationName str
 }
 
 func (r *UserRepo) AppendRelation(ctx context.Context, id int, relationName string, relationData interface{}) error {
-	db := r.db.Debug().WithContext(ctx)
+	db := r.db.WithContext(ctx)
 
 	err := db.Model(&src.User{ID: id}).Association(relationName).Append(relationData)
 	if err != nil {
@@ -132,7 +132,7 @@ func (r *UserRepo) AppendRelation(ctx context.Context, id int, relationName stri
 }
 
 func (r *UserRepo) DeleteRelation(ctx context.Context, id int, relationName string, relationData interface{}) error {
-	db := r.db.Debug().WithContext(ctx)
+	db := r.db.WithContext(ctx)
 
 	err := db.Model(&src.User{ID: id}).Association(relationName).Delete(relationData)
 	if err != nil {
