@@ -114,10 +114,10 @@ func run() error {
 
 		// relations
 		userRoutes.GET("/:id/relationships/:rel", cntrManager.User.GetRelation)
-		//userRoutes.Match(
-		//	[]string{"PATCH", "POST", "DELETE"},
-		//	"/:id/relationships/:rel",
-		//	cntrManager.User.ModifyRelation)
+		userRoutes.Match(
+			[]string{"PATCH", "POST", "DELETE"},
+			"/:id/relationships/:rel",
+			cntrManager.User.ModifyRelation)
 	}
 
 	// Role routes
