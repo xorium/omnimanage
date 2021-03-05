@@ -10,8 +10,9 @@ require (
 	github.com/ilyakaznacheev/cleanenv v1.2.5
 	github.com/labstack/echo/v4 v4.1.17
 	github.com/leodido/go-urn v1.2.1 // indirect
+	github.com/pangpanglabs/echoswagger/v2 v2.1.0 // indirect
 	github.com/pkg/errors v0.8.1
-	github.com/stretchr/testify v1.6.1 // indirect
+	gopkg.in/go-playground/assert.v1 v1.2.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gorm.io/datatypes v1.0.0
 	gorm.io/driver/postgres v1.0.8

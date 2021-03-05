@@ -272,7 +272,7 @@ func (ctr *UserController) Create(ctx echo.Context) error {
 		return omniErr.NewHTTPError(http.StatusBadRequest, omniErr.ErrTitleResourceNotFound, err)
 	}
 
-	err = validator.Validate(webModel)
+	err = validator.ValidateStruct(webModel)
 	if err != nil {
 		return omniErr.NewHTTPError(http.StatusUnprocessableEntity, omniErr.ErrTitleValidation, err)
 	}

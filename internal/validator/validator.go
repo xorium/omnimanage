@@ -14,8 +14,8 @@ import (
 //	return &Validator{}
 //}
 //
-//// Validate implements the echo framework validator interface.
-//func (val *Validator) Validate(i interface{}) error {
+//// ValidateStruct implements the echo framework validator interface.
+//func (val *Validator) ValidateStruct(i interface{}) error {
 //	//err := val.validator.Struct(i)
 //	//if err == nil {
 //	//	return nil
@@ -25,13 +25,13 @@ import (
 //	return nil
 //}
 
-// use a single instance of Validate, it caches struct info
+// use a single instance of validate, it caches struct info
 var (
 	validate *validator.Validate
 	once     sync.Once
 )
 
-func Validate(s interface{}) error {
+func ValidateStruct(s interface{}) error {
 	once.Do(func() {
 		validate = validator.New()
 	})

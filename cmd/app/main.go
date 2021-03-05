@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	"github.com/pangpanglabs/echoswagger/v2"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -59,27 +60,12 @@ func run() error {
 	//e.Validator = validator.NewValidator()
 	e.HTTPErrorHandler = omniErr.ErrHandler
 
-	// ADMIN
-	//{
-	//	Admin := admin.New(&admin.AdminConfig{
-	//		//DB: db.,
-	//	})
-	//
-	//	Admin.AddResource(&src.User{})
-	//	Admin.AddResource(&src.Role{})
-	//	Admin.AddResource(&src.Location{})
-	//	Admin.AddResource(&src.Company{})
-	//
-	//	adminHandler := echo.WrapHandler(Admin.NewServeMux("/admin"))
-	//	e.GET("/admin", adminHandler)
-	//	e.Any("/admin/*", adminHandler)
-	//}
-
 	// Middleware
 	e.Use(
 		omnimiddleware.ResponseType,
 		middleware.Recover(),
 		middleware.RequestID(),
+		middleware.RemoveTrailingSlash(),
 	)
 
 	//e.Use(middleware.Logger())
@@ -87,14 +73,39 @@ func run() error {
 	// Controllers
 	cntrManager := controller.NewManager(store)
 
+	//// Docs
+	se := echoswagger.New(e, "docs/", &echoswagger.Info{
+		Title:          "Swagger Omnimanage",
+		Description:    "Omnimanage description.  You can find out more about     Swagger at [http://swagger.io](http://swagger.io) or on [irc.freenode.net, #swagger](http://swagger.io/irc/).      For this sample, you can use the api key `special-key` to test the authorization     filters.",
+		Version:        "1.0.0",
+		TermsOfService: "http://swagger.io/terms/",
+		Contact: &echoswagger.Contact{
+			Email: "apiteam@swagger.io",
+		},
+		License: &echoswagger.License{
+			Name: "Apache 2.0",
+			URL:  "http://www.apache.org/licenses/LICENSE-2.0.html",
+		},
+	})
+	se.SetExternalDocs("Find out more about Swagger", "http://swagger.io").
+		SetResponseContentType("application/xml", "application/json").
+		SetUI(echoswagger.UISetting{DetachSpec: true, HideTop: true}).
+		SetScheme("https", "http")
+
 	// Routes
 
-	// Common grp
-	companyGrp := e.Group("/companies/:idComp")
+	// Company
+	companyGrp := e.Group("/companies/:idComp") //se.Group("Company", "/companies")
+	//{
+	//	companyGrp.GET("", nil)
+	//	companyGrp.GET("/:cid", nil).AddParamPath(0, "cid", "Company ID")
+	//}
 
 	// User routes
 	{
+
 		userRoutes := companyGrp.Group("/users")
+		//userRoutes := se.Group("Users", "/company/users")
 		userRoutes.GET("", cntrManager.User.GetList)
 		userRoutes.GET("/:id", cntrManager.User.GetOne)
 		userRoutes.POST("/", cntrManager.User.Create)
@@ -103,10 +114,10 @@ func run() error {
 
 		// relations
 		userRoutes.GET("/:id/relationships/:rel", cntrManager.User.GetRelation)
-		userRoutes.Match(
-			[]string{"PATCH", "POST", "DELETE"},
-			"/:id/relationships/:rel",
-			cntrManager.User.ModifyRelation)
+		//userRoutes.Match(
+		//	[]string{"PATCH", "POST", "DELETE"},
+		//	"/:id/relationships/:rel",
+		//	cntrManager.User.ModifyRelation)
 	}
 
 	// Role routes
