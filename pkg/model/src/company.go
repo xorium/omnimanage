@@ -43,10 +43,9 @@ func (Company) TableName() string {
 //	}
 //}
 
-func (m *Company) ToWeb(mapper *mapper.ModelMapper) (*webmodels.Company, error) {
+func (m *Company) ToWeb() (*webmodels.Company, error) {
 	web := new(webmodels.Company)
-
-	err := mapper.ConvertSrcToWeb(m, &web)
+	err := mapper.Get().ConvertSrcToWeb(m, &web)
 	if err != nil {
 		return nil, err
 	}
@@ -54,9 +53,9 @@ func (m *Company) ToWeb(mapper *mapper.ModelMapper) (*webmodels.Company, error) 
 	return web, nil
 }
 
-func (*Company) ScanFromWeb(web *webmodels.Company, mapper *mapper.ModelMapper) (*Company, error) {
+func (*Company) ScanFromWeb(web *webmodels.Company) (*Company, error) {
 	m := new(Company)
-	err := mapper.ConvertWebToSrc(web, m)
+	err := mapper.Get().ConvertWebToSrc(web, m)
 	if err != nil {
 		return m, err
 	}
@@ -64,13 +63,13 @@ func (*Company) ScanFromWeb(web *webmodels.Company, mapper *mapper.ModelMapper) 
 	return m, nil
 }
 
-func (m Companies) ToWeb(mapper *mapper.ModelMapper) ([]*webmodels.Company, error) {
+func (m Companies) ToWeb() ([]*webmodels.Company, error) {
 	if m == nil {
 		return nil, nil
 	}
 	omniM := make([]*webmodels.Company, 0, 5)
 	for _, u := range m {
-		webM, err := u.ToWeb(mapper)
+		webM, err := u.ToWeb()
 		if err != nil {
 			return nil, err
 		}

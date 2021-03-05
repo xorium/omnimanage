@@ -1,7 +1,10 @@
 package config
 
 import (
+	"encoding/json"
+	"fmt"
 	"github.com/ilyakaznacheev/cleanenv"
+	"log"
 )
 
 type Config struct {
@@ -37,5 +40,12 @@ func Get(path string) (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	configBytes, err := json.MarshalIndent(config, "", "  ")
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println("Configuration:", string(configBytes))
+
 	return &config, nil
 }

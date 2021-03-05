@@ -73,19 +73,22 @@ type Users []*User
 //	}
 //}
 
-func (m *User) ToWeb(mapper *mapper.ModelMapper) (*webmodels.User, error) {
+func (m *User) ToWeb() (*webmodels.User, error) {
 	web := new(webmodels.User)
 
-	err := mapper.ConvertSrcToWeb(m, &web)
+	mr := mapper.Get()
+	err := mr.ConvertSrcToWeb(m, &web)
+
 	if err != nil {
 		return nil, err
 	}
 	return web, nil
 }
 
-func (*User) ScanFromWeb(web *webmodels.User, mapper *mapper.ModelMapper) (*User, error) {
+func (*User) ScanFromWeb(web *webmodels.User) (*User, error) {
 	m := new(User)
-	err := mapper.ConvertWebToSrc(web, m)
+	mr := mapper.Get()
+	err := mr.ConvertWebToSrc(web, m)
 	if err != nil {
 		return nil, err
 	}
@@ -93,13 +96,13 @@ func (*User) ScanFromWeb(web *webmodels.User, mapper *mapper.ModelMapper) (*User
 	return m, nil
 }
 
-func (m Users) ToWeb(mapper *mapper.ModelMapper) ([]*webmodels.User, error) {
+func (m Users) ToWeb() ([]*webmodels.User, error) {
 	if m == nil {
 		return nil, nil
 	}
 	omniM := make([]*webmodels.User, 0, 5)
 	for _, u := range m {
-		webUser, err := u.ToWeb(mapper)
+		webUser, err := u.ToWeb()
 		if err != nil {
 			return nil, err
 		}
@@ -108,7 +111,7 @@ func (m Users) ToWeb(mapper *mapper.ModelMapper) ([]*webmodels.User, error) {
 	return omniM, nil
 }
 
-func (m Users) ScanFromWeb(web []*webmodels.User, mapper *mapper.ModelMapper) (Users, error) {
+func (m Users) ScanFromWeb(web []*webmodels.User) (Users, error) {
 	if len(web) == 0 {
 		return nil, nil
 	}
@@ -116,7 +119,7 @@ func (m Users) ScanFromWeb(web []*webmodels.User, mapper *mapper.ModelMapper) (U
 	srcPoint := new(User)
 	res := make(Users, 0, len(web))
 	for _, u := range web {
-		srcRec, err := srcPoint.ScanFromWeb(u, mapper)
+		srcRec, err := srcPoint.ScanFromWeb(u)
 		if err != nil {
 			return nil, err
 		}

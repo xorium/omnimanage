@@ -2,7 +2,6 @@ package controller
 
 import (
 	"omnimanage/internal/store"
-	"omnimanage/pkg/mapper"
 )
 
 // Manager is just a collection of all controllers we have in the project
@@ -11,9 +10,9 @@ type Manager struct {
 	Role *RoleController
 }
 
-func NewManager(store *store.Store, mapper *mapper.ModelMapper) *Manager {
+func NewManager(store *store.Store) *Manager {
 	return &Manager{
-		User: NewUserController(store, mapper),
+		User: NewUserController(store),
 		Role: NewRoleController(store),
 	}
 }

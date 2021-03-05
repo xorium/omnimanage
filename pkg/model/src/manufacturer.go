@@ -52,10 +52,10 @@ type Manufacturers []*Manufacturer
 //	}
 //}
 
-func (m *Manufacturer) ToWeb(mapper *mapper.ModelMapper) (*webmodels.Manufacturer, error) {
+func (m *Manufacturer) ToWeb() (*webmodels.Manufacturer, error) {
 	web := new(webmodels.Manufacturer)
 
-	err := mapper.ConvertSrcToWeb(m, &web)
+	err := mapper.Get().ConvertSrcToWeb(m, &web)
 	if err != nil {
 		return nil, err
 	}
@@ -63,9 +63,9 @@ func (m *Manufacturer) ToWeb(mapper *mapper.ModelMapper) (*webmodels.Manufacture
 	return web, nil
 }
 
-func (*Manufacturer) ScanFromWeb(web *webmodels.Manufacturer, mapper *mapper.ModelMapper) (*Manufacturer, error) {
+func (*Manufacturer) ScanFromWeb(web *webmodels.Manufacturer) (*Manufacturer, error) {
 	m := new(Manufacturer)
-	err := mapper.ConvertWebToSrc(web, m)
+	err := mapper.Get().ConvertWebToSrc(web, m)
 	if err != nil {
 		return nil, err
 	}
@@ -79,7 +79,7 @@ func (m Manufacturers) ToWeb(mapper *mapper.ModelMapper) ([]*webmodels.Manufactu
 	}
 	omniM := make([]*webmodels.Manufacturer, 0, 5)
 	for _, u := range m {
-		webU, err := u.ToWeb(mapper)
+		webU, err := u.ToWeb()
 		if err != nil {
 			return nil, err
 		}
@@ -88,7 +88,7 @@ func (m Manufacturers) ToWeb(mapper *mapper.ModelMapper) ([]*webmodels.Manufactu
 	return omniM, nil
 }
 
-func (m Manufacturers) ScanFromWeb(web []*webmodels.Manufacturer, mapper *mapper.ModelMapper) (Manufacturers, error) {
+func (m Manufacturers) ScanFromWeb(web []*webmodels.Manufacturer) (Manufacturers, error) {
 	if len(web) == 0 {
 		return nil, nil
 	}
@@ -96,7 +96,7 @@ func (m Manufacturers) ScanFromWeb(web []*webmodels.Manufacturer, mapper *mapper
 	srcPoint := new(Manufacturer)
 	res := make(Manufacturers, 0, len(web))
 	for _, u := range web {
-		srcRec, err := srcPoint.ScanFromWeb(u, mapper)
+		srcRec, err := srcPoint.ScanFromWeb(u)
 		if err != nil {
 			return nil, err
 		}

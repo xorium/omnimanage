@@ -44,13 +44,13 @@ var OperatorsMap = map[string]string{
 }
 
 // filter schema: filter[relation.relation_field][operator]=value
-func ParseFiltersFromQueryToSrcModel(queryStr string, m *mapper.ModelMapper, modelWeb interface{}, modelSrc interface{}) ([]*Filter, error) {
+func ParseFiltersFromQueryToSrcModel(queryStr string, modelWeb interface{}, modelSrc interface{}) ([]*Filter, error) {
 	filtersStrings, err := ParseQueryString(queryStr, modelWeb)
 	if err != nil {
 		return nil, err
 	}
 
-	srcFilters, err := TransformWebToSrc(filtersStrings, m, modelWeb, modelSrc)
+	srcFilters, err := TransformWebToSrc(filtersStrings, modelWeb, modelSrc)
 	if err != nil {
 		return nil, err
 	}
@@ -114,7 +114,7 @@ func ParseQueryString(queryStr string, modelWeb interface{}) ([]*Filter, error) 
 
 }
 
-func TransformWebToSrc(filtersIn []*Filter, m *mapper.ModelMapper, modelWeb interface{}, modelSrc interface{}) (out []*Filter, errOut error) {
+func TransformWebToSrc(filtersIn []*Filter, modelWeb interface{}, modelSrc interface{}) (out []*Filter, errOut error) {
 	if filtersIn == nil {
 		return nil, nil
 	}
@@ -138,7 +138,7 @@ func TransformWebToSrc(filtersIn []*Filter, m *mapper.ModelMapper, modelWeb inte
 	}
 
 	//modelSrcMaps := modelSrc.GetModelMapper()
-	modelSrcMaps, err := m.GetModelMaps(modelSrc)
+	modelSrcMaps, err := mapper.Get().GetModelMaps(modelSrc)
 	if err != nil {
 		return nil, err
 	}
@@ -186,7 +186,7 @@ func TransformWebToSrc(filtersIn []*Filter, m *mapper.ModelMapper, modelWeb inte
 				srcRefType = srcRefModel.Type
 			}
 
-			modelSrcRelMaps, err := m.GetModelMaps(reflect.New(srcRefType).Elem().Interface()) //mapper.GetMapperDynamic(srcRefType)
+			modelSrcRelMaps, err := mapper.Get().GetModelMaps(reflect.New(srcRefType).Elem().Interface()) //mapper.GetMapperDynamic(srcRefType)
 			if err != nil {
 				return nil, fmt.Errorf("Field %v: %v", modelRelFieldMapper.SrcName, err)
 			}

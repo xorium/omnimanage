@@ -8,7 +8,7 @@ import (
 
 type Subscription struct {
 	ID              int            `gorm:"primaryKey" omni:"ID;src:ID2src;web:ID2web"`
-	Title           string         `omni:"Name"`
+	Title           string         `omni:"Title"`
 	ContactChannels datatypes.JSON `omni:"ContactChannels;src:JSON2src;web:JSON2web"`
 	Options         datatypes.JSON `omni:"Options;src:JSON2src;web:JSON2web"`
 	CompanyID       int
@@ -77,19 +77,19 @@ type Subscriptions []*Subscription
 //	}
 //}
 
-func (m *Subscription) ToWeb(mapper *mapper.ModelMapper) (*webmodels.Subscription, error) {
+func (m *Subscription) ToWeb() (*webmodels.Subscription, error) {
 	web := new(webmodels.Subscription)
 
-	err := mapper.ConvertSrcToWeb(m, &web)
+	err := mapper.Get().ConvertSrcToWeb(m, &web)
 	if err != nil {
 		return nil, err
 	}
 	return web, nil
 }
 
-func (*Subscription) ScanFromWeb(web *webmodels.Subscription, mapper *mapper.ModelMapper) (*Subscription, error) {
+func (*Subscription) ScanFromWeb(web *webmodels.Subscription) (*Subscription, error) {
 	m := new(Subscription)
-	err := mapper.ConvertWebToSrc(web, m)
+	err := mapper.Get().ConvertWebToSrc(web, m)
 	if err != nil {
 		return nil, err
 	}
@@ -97,13 +97,13 @@ func (*Subscription) ScanFromWeb(web *webmodels.Subscription, mapper *mapper.Mod
 	return m, nil
 }
 
-func (m Subscriptions) ToWeb(mapper *mapper.ModelMapper) ([]*webmodels.Subscription, error) {
+func (m Subscriptions) ToWeb() ([]*webmodels.Subscription, error) {
 	if m == nil {
 		return nil, nil
 	}
 	omniM := make([]*webmodels.Subscription, 0, 5)
 	for _, u := range m {
-		webUser, err := u.ToWeb(mapper)
+		webUser, err := u.ToWeb()
 		if err != nil {
 			return nil, err
 		}
@@ -112,7 +112,7 @@ func (m Subscriptions) ToWeb(mapper *mapper.ModelMapper) ([]*webmodels.Subscript
 	return omniM, nil
 }
 
-func (m Subscriptions) ScanFromWeb(web []*webmodels.Subscription, mapper *mapper.ModelMapper) (Subscriptions, error) {
+func (m Subscriptions) ScanFromWeb(web []*webmodels.Subscription) (Subscriptions, error) {
 	if len(web) == 0 {
 		return nil, nil
 	}
@@ -120,7 +120,7 @@ func (m Subscriptions) ScanFromWeb(web []*webmodels.Subscription, mapper *mapper
 	srcPoint := new(Subscription)
 	res := make(Subscriptions, 0, len(web))
 	for _, u := range web {
-		srcRec, err := srcPoint.ScanFromWeb(u, mapper)
+		srcRec, err := srcPoint.ScanFromWeb(u)
 		if err != nil {
 			return nil, err
 		}

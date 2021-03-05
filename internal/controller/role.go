@@ -14,8 +14,8 @@ import (
 )
 
 type RoleController struct {
-	store  *store.Store
-	mapper *mapper.ModelMapper
+	store *store.Store
+	//mapper *mapper.ModelMapper
 	//logger
 }
 
@@ -25,7 +25,7 @@ func NewRoleController(store *store.Store) *RoleController {
 
 // GetOne returns Role
 func (ctr *RoleController) GetOne(ctx echo.Context) error {
-	idSrc, err := ctr.mapper.GetSrcID(ctx.Param("id"), &src.Role{})
+	idSrc, err := mapper.Get().GetSrcID(ctx.Param("id"), &src.Role{})
 	if err != nil {
 		switch {
 		case errors.Cause(err) == omniErr.ErrBadRequest:
@@ -45,7 +45,7 @@ func (ctr *RoleController) GetOne(ctx echo.Context) error {
 		}
 	}
 
-	webRes, err := srcRes.ToWeb(ctr.mapper)
+	webRes, err := srcRes.ToWeb()
 	if err != nil {
 		return omniErr.NewHTTPError(http.StatusInternalServerError, omniErr.ErrTitleInternal, err)
 	}
@@ -60,7 +60,7 @@ func (ctr *RoleController) GetOne(ctx echo.Context) error {
 
 func (ctr *RoleController) GetList(ctx echo.Context) error {
 
-	srcFilters, err := filt.ParseFiltersFromQueryToSrcModel(ctx.Request().URL.RawQuery, ctr.mapper, &webmodels.Role{}, &src.Role{})
+	srcFilters, err := filt.ParseFiltersFromQueryToSrcModel(ctx.Request().URL.RawQuery, &webmodels.Role{}, &src.Role{})
 	if err != nil {
 		switch {
 		case errors.Cause(err) == omniErr.ErrBadRequest:
@@ -80,7 +80,7 @@ func (ctr *RoleController) GetList(ctx echo.Context) error {
 		}
 	}
 
-	webRes, err := srcRes.ToWeb(ctr.mapper)
+	webRes, err := srcRes.ToWeb()
 	if err != nil {
 		return omniErr.NewHTTPError(http.StatusInternalServerError, omniErr.ErrTitleInternal, err)
 	}

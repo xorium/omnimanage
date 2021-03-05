@@ -69,32 +69,32 @@ type Rules []*Rule
 //	}
 //}
 
-func (m *Rule) ToWeb(mapper *mapper.ModelMapper) (*webmodels.Rule, error) {
+func (m *Rule) ToWeb() (*webmodels.Rule, error) {
 	web := new(webmodels.Rule)
 
-	err := mapper.ConvertSrcToWeb(m, &web)
+	err := mapper.Get().ConvertSrcToWeb(m, &web)
 	if err != nil {
 		return nil, err
 	}
 	return web, nil
 }
 
-func (*Rule) ScanFromWeb(web *webmodels.Rule, mapper *mapper.ModelMapper) (*Rule, error) {
+func (*Rule) ScanFromWeb(web *webmodels.Rule) (*Rule, error) {
 	m := new(Rule)
-	err := mapper.ConvertWebToSrc(web, m)
+	err := mapper.Get().ConvertWebToSrc(web, m)
 	if err != nil {
 		return nil, err
 	}
 	return m, nil
 }
 
-func (m Rules) ToWeb(mapper *mapper.ModelMapper) ([]*webmodels.Rule, error) {
+func (m Rules) ToWeb() ([]*webmodels.Rule, error) {
 	if m == nil {
 		return nil, nil
 	}
 	omniM := make([]*webmodels.Rule, 0, 5)
 	for _, u := range m {
-		webU, err := u.ToWeb(mapper)
+		webU, err := u.ToWeb()
 		if err != nil {
 			return nil, err
 		}
@@ -103,7 +103,7 @@ func (m Rules) ToWeb(mapper *mapper.ModelMapper) ([]*webmodels.Rule, error) {
 	return omniM, nil
 }
 
-func (m Rules) ScanFromWeb(web []*webmodels.Rule, mapper *mapper.ModelMapper) (Rules, error) {
+func (m Rules) ScanFromWeb(web []*webmodels.Rule) (Rules, error) {
 	if len(web) == 0 {
 		return nil, nil
 	}
@@ -111,7 +111,7 @@ func (m Rules) ScanFromWeb(web []*webmodels.Rule, mapper *mapper.ModelMapper) (R
 	srcPoint := new(Rule)
 	res := make(Rules, 0, len(web))
 	for _, u := range web {
-		srcRec, err := srcPoint.ScanFromWeb(u, mapper)
+		srcRec, err := srcPoint.ScanFromWeb(u)
 		if err != nil {
 			return nil, err
 		}

@@ -15,7 +15,6 @@ import (
 	omnimiddleware "omnimanage/internal/middleware"
 	"omnimanage/internal/store"
 	omniErr "omnimanage/pkg/error"
-	"omnimanage/pkg/mapper"
 	"os"
 	"os/signal"
 	"time"
@@ -86,7 +85,7 @@ func run() error {
 	//e.Use(middleware.Logger())
 
 	// Controllers
-	cntrManager := controller.NewManager(store, mapper.NewModelMapper())
+	cntrManager := controller.NewManager(store)
 
 	// Routes
 

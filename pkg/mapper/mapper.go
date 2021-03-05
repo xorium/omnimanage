@@ -9,6 +9,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 const (
@@ -32,77 +33,84 @@ type ModelMapper struct {
 	customFunc map[string]func(model interface{}) (interface{}, error)
 }
 
-func NewModelMapper() *ModelMapper {
-	m := &ModelMapper{customFunc: make(map[string]func(model interface{}) (interface{}, error))}
+var (
+	mr   *ModelMapper
+	once sync.Once
+)
 
-	// TODO перенести куда-нибудь
-	// default converters
-	{
-		m.RegisterCustomConverter(
-			"ID2src",
-			func(web interface{}) (interface{}, error) {
-				w, ok := web.(string)
-				if !ok {
-					return 0, fmt.Errorf("ID: Wrong type '%T', value %v", web, web)
-				}
-				if len(w) == 0 {
-					return 0, nil
-				}
-				id, err := strconv.Atoi(w)
-				if err != nil {
-					return 0, err
-				}
-				return id, nil
+func Get() *ModelMapper {
+	once.Do(func() {
+		mr = &ModelMapper{customFunc: make(map[string]func(model interface{}) (interface{}, error))}
 
-			},
-		)
-		m.RegisterCustomConverter(
-			"ID2web",
-			func(src interface{}) (interface{}, error) {
-				s, ok := src.(int)
-				if !ok {
-					return "", fmt.Errorf("ID: Wrong type '%T', value %v", src, src)
-				}
-				id := strconv.Itoa(s)
-				return id, nil
-			},
-		)
-		m.RegisterCustomConverter(
-			"JSON2src",
-			func(web interface{}) (interface{}, error) {
-				w, ok := web.(map[string]interface{})
-				if !ok {
-					return nil, fmt.Errorf("Wrong type '%T'", web)
-				}
+		// default converters
+		{
+			mr.RegisterCustomConverter(
+				"ID2src",
+				func(web interface{}) (interface{}, error) {
+					w, ok := web.(string)
+					if !ok {
+						return 0, fmt.Errorf("ID: Wrong type '%T', value %v", web, web)
+					}
+					if len(w) == 0 {
+						return 0, nil
+					}
+					id, err := strconv.Atoi(w)
+					if err != nil {
+						return 0, err
+					}
+					return id, nil
 
-				j, err := json.Marshal(w)
-				if err != nil {
-					return nil, err
-				}
+				},
+			)
+			mr.RegisterCustomConverter(
+				"ID2web",
+				func(src interface{}) (interface{}, error) {
+					s, ok := src.(int)
+					if !ok {
+						return "", fmt.Errorf("ID: Wrong type '%T', value %v", src, src)
+					}
+					id := strconv.Itoa(s)
+					return id, nil
+				},
+			)
+			mr.RegisterCustomConverter(
+				"JSON2src",
+				func(web interface{}) (interface{}, error) {
+					w, ok := web.(map[string]interface{})
+					if !ok {
+						return nil, fmt.Errorf("Wrong type '%T'", web)
+					}
 
-				return j, nil
-			},
-		)
-		m.RegisterCustomConverter(
-			"JSON2web",
-			func(src interface{}) (interface{}, error) {
-				s, ok := src.(datatypes.JSON)
-				if !ok {
-					return nil, fmt.Errorf("Wrong type '%T'", src)
-				}
-				if len(s) == 0 {
-					s = []byte("{}")
-				}
-				w := map[string]interface{}{}
-				err := json.Unmarshal(s, &w)
-				if err != nil {
-					return nil, err
-				}
-				return w, nil
-			},
-		)
-	}
-	return m
+					j, err := json.Marshal(w)
+					if err != nil {
+						return nil, err
+					}
+
+					return j, nil
+				},
+			)
+			mr.RegisterCustomConverter(
+				"JSON2web",
+				func(src interface{}) (interface{}, error) {
+					s, ok := src.(datatypes.JSON)
+					if !ok {
+						return nil, fmt.Errorf("Wrong type '%T'", src)
+					}
+					if len(s) == 0 {
+						s = []byte("{}")
+					}
+					w := map[string]interface{}{}
+					err := json.Unmarshal(s, &w)
+					if err != nil {
+						return nil, err
+					}
+					return w, nil
+				},
+			)
+		}
+	})
+
+	return mr
 }
 
 func (m *ModelMapper) RegisterCustomConverter(tagName string, f func(model interface{}) (interface{}, error)) {
@@ -229,7 +237,7 @@ func (m *ModelMapper) ConvertSrcToWeb(src interface{}, web interface{}) (errOut 
 				if srcField.IsZero() {
 					continue
 				}
-				resInv, err := CallMethodWith2Output(srcField.Value(), MethodNameToWeb, m)
+				resInv, err := CallMethodWith2Output(srcField.Value(), MethodNameToWeb)
 				if err != nil {
 					return fmt.Errorf("Error in converting %v : %v", val.SrcName, err)
 				}
@@ -351,7 +359,7 @@ func (m *ModelMapper) ConvertWebToSrc(web interface{}, src interface{}) (errOut 
 					continue
 				}
 
-				resInv, err := CallMethodWith2Output(srcField.Value(), MethodNameScanFromWeb, webField.Value(), m)
+				resInv, err := CallMethodWith2Output(srcField.Value(), MethodNameScanFromWeb, webField.Value())
 				if err != nil {
 					return fmt.Errorf("Error in converting %v : %v", val.WebName, err)
 				}

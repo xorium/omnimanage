@@ -77,10 +77,10 @@ type Devices []*Device
 //	}
 //}
 
-func (m *Device) ToWeb(mapper *mapper.ModelMapper) (*webmodels.Device, error) {
+func (m *Device) ToWeb() (*webmodels.Device, error) {
 	web := new(webmodels.Device)
 
-	err := mapper.ConvertSrcToWeb(m, &web)
+	err := mapper.Get().ConvertSrcToWeb(m, &web)
 	if err != nil {
 		return nil, err
 	}
@@ -88,9 +88,9 @@ func (m *Device) ToWeb(mapper *mapper.ModelMapper) (*webmodels.Device, error) {
 	return web, nil
 }
 
-func (*Device) ScanFromWeb(web *webmodels.Device, mapper *mapper.ModelMapper) (*Device, error) {
+func (*Device) ScanFromWeb(web *webmodels.Device) (*Device, error) {
 	m := new(Device)
-	err := mapper.ConvertWebToSrc(web, m)
+	err := mapper.Get().ConvertWebToSrc(web, m)
 	if err != nil {
 		return nil, err
 	}
@@ -98,13 +98,13 @@ func (*Device) ScanFromWeb(web *webmodels.Device, mapper *mapper.ModelMapper) (*
 	return m, nil
 }
 
-func (m Devices) ToWeb(mapper *mapper.ModelMapper) ([]*webmodels.Device, error) {
+func (m Devices) ToWeb() ([]*webmodels.Device, error) {
 	if m == nil {
 		return nil, nil
 	}
 	omniM := make([]*webmodels.Device, 0, 5)
 	for _, u := range m {
-		webU, err := u.ToWeb(mapper)
+		webU, err := u.ToWeb()
 		if err != nil {
 			return nil, err
 		}
@@ -113,7 +113,7 @@ func (m Devices) ToWeb(mapper *mapper.ModelMapper) ([]*webmodels.Device, error) 
 	return omniM, nil
 }
 
-func (m Devices) ScanFromWeb(web []*webmodels.Device, mapper *mapper.ModelMapper) (Devices, error) {
+func (m Devices) ScanFromWeb(web []*webmodels.Device) (Devices, error) {
 	if len(web) == 0 {
 		return nil, nil
 	}
@@ -121,7 +121,7 @@ func (m Devices) ScanFromWeb(web []*webmodels.Device, mapper *mapper.ModelMapper
 	srcPoint := new(Device)
 	res := make(Devices, 0, len(web))
 	for _, u := range web {
-		srcRec, err := srcPoint.ScanFromWeb(u, mapper)
+		srcRec, err := srcPoint.ScanFromWeb(u)
 		if err != nil {
 			return nil, err
 		}
@@ -189,10 +189,10 @@ type DeviceGroups []*DeviceGroup
 //	}
 //}
 
-func (m *DeviceGroup) ToWeb(mapper *mapper.ModelMapper) (*webmodels.DeviceGroup, error) {
+func (m *DeviceGroup) ToWeb() (*webmodels.DeviceGroup, error) {
 	web := new(webmodels.DeviceGroup)
 
-	err := mapper.ConvertSrcToWeb(m, &web)
+	err := mapper.Get().ConvertSrcToWeb(m, &web)
 	if err != nil {
 		return nil, err
 	}
@@ -200,9 +200,9 @@ func (m *DeviceGroup) ToWeb(mapper *mapper.ModelMapper) (*webmodels.DeviceGroup,
 	return web, nil
 }
 
-func (*DeviceGroup) ScanFromWeb(web *webmodels.DeviceGroup, mapper *mapper.ModelMapper) (*DeviceGroup, error) {
+func (*DeviceGroup) ScanFromWeb(web *webmodels.DeviceGroup) (*DeviceGroup, error) {
 	m := new(DeviceGroup)
-	err := mapper.ConvertWebToSrc(web, m)
+	err := mapper.Get().ConvertWebToSrc(web, m)
 	if err != nil {
 		return nil, err
 	}
@@ -210,13 +210,13 @@ func (*DeviceGroup) ScanFromWeb(web *webmodels.DeviceGroup, mapper *mapper.Model
 	return m, nil
 }
 
-func (m DeviceGroups) ToWeb(mapper *mapper.ModelMapper) ([]*webmodels.DeviceGroup, error) {
+func (m DeviceGroups) ToWeb() ([]*webmodels.DeviceGroup, error) {
 	if m == nil {
 		return nil, nil
 	}
 	omniM := make([]*webmodels.DeviceGroup, 0, 5)
 	for _, u := range m {
-		webU, err := u.ToWeb(mapper)
+		webU, err := u.ToWeb()
 		if err != nil {
 			return nil, err
 		}
@@ -225,7 +225,7 @@ func (m DeviceGroups) ToWeb(mapper *mapper.ModelMapper) ([]*webmodels.DeviceGrou
 	return omniM, nil
 }
 
-func (m DeviceGroups) ScanFromWeb(web []*webmodels.DeviceGroup, mapper *mapper.ModelMapper) (DeviceGroups, error) {
+func (m DeviceGroups) ScanFromWeb(web []*webmodels.DeviceGroup) (DeviceGroups, error) {
 	if len(web) == 0 {
 		return nil, nil
 	}
@@ -233,7 +233,7 @@ func (m DeviceGroups) ScanFromWeb(web []*webmodels.DeviceGroup, mapper *mapper.M
 	srcPoint := new(DeviceGroup)
 	res := make(DeviceGroups, 0, len(web))
 	for _, u := range web {
-		srcRec, err := srcPoint.ScanFromWeb(u, mapper)
+		srcRec, err := srcPoint.ScanFromWeb(u)
 		if err != nil {
 			return nil, err
 		}
@@ -283,10 +283,10 @@ func (DeviceModel) TableName() string {
 //	}
 //}
 
-func (m *DeviceModel) ToWeb(mapper *mapper.ModelMapper) (*webmodels.DeviceModel, error) {
+func (m *DeviceModel) ToWeb() (*webmodels.DeviceModel, error) {
 	web := new(webmodels.DeviceModel)
 
-	err := mapper.ConvertSrcToWeb(m, &web)
+	err := mapper.Get().ConvertSrcToWeb(m, &web)
 	if err != nil {
 		return nil, err
 	}
@@ -294,9 +294,9 @@ func (m *DeviceModel) ToWeb(mapper *mapper.ModelMapper) (*webmodels.DeviceModel,
 	return web, nil
 }
 
-func (*DeviceModel) ScanFromWeb(web *webmodels.DeviceModel, mapper *mapper.ModelMapper) (*DeviceModel, error) {
+func (*DeviceModel) ScanFromWeb(web *webmodels.DeviceModel) (*DeviceModel, error) {
 	m := new(DeviceModel)
-	err := mapper.ConvertWebToSrc(web, m)
+	err := mapper.Get().ConvertWebToSrc(web, m)
 	if err != nil {
 		return nil, err
 	}
@@ -304,13 +304,13 @@ func (*DeviceModel) ScanFromWeb(web *webmodels.DeviceModel, mapper *mapper.Model
 	return m, nil
 }
 
-func (m DeviceModels) ToWeb(mapper *mapper.ModelMapper) ([]*webmodels.DeviceModel, error) {
+func (m DeviceModels) ToWeb() ([]*webmodels.DeviceModel, error) {
 	if m == nil {
 		return nil, nil
 	}
 	omniM := make([]*webmodels.DeviceModel, 0, 5)
 	for _, u := range m {
-		webU, err := u.ToWeb(mapper)
+		webU, err := u.ToWeb()
 		if err != nil {
 			return nil, err
 		}
@@ -319,7 +319,7 @@ func (m DeviceModels) ToWeb(mapper *mapper.ModelMapper) ([]*webmodels.DeviceMode
 	return omniM, nil
 }
 
-func (m DeviceModels) ScanFromWeb(web []*webmodels.DeviceModel, mapper *mapper.ModelMapper) (DeviceModels, error) {
+func (m DeviceModels) ScanFromWeb(web []*webmodels.DeviceModel) (DeviceModels, error) {
 	if len(web) == 0 {
 		return nil, nil
 	}
@@ -327,7 +327,7 @@ func (m DeviceModels) ScanFromWeb(web []*webmodels.DeviceModel, mapper *mapper.M
 	srcPoint := new(DeviceModel)
 	res := make(DeviceModels, 0, len(web))
 	for _, u := range web {
-		srcRec, err := srcPoint.ScanFromWeb(u, mapper)
+		srcRec, err := srcPoint.ScanFromWeb(u)
 		if err != nil {
 			return nil, err
 		}
