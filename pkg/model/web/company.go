@@ -1,6 +1,6 @@
 package web
 
 type Company struct {
-	ID   string `jsonapi:"primary,companies"`
-	Name string `jsonapi:"attr,name"`
+	ID   string `jsonapi:"primary,companies" default:"1"`
+	Name string `jsonapi:"attr,name" default:"CompanyName"`
 }

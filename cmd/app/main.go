@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/google/jsonapi"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/pangpanglabs/echoswagger/v2"
@@ -16,6 +17,8 @@ import (
 	omnimiddleware "omnimanage/internal/middleware"
 	"omnimanage/internal/store"
 	omniErr "omnimanage/pkg/error"
+	webmodels "omnimanage/pkg/model/web"
+	"omnimanage/pkg/utils/converter"
 	"os"
 	"os/signal"
 	"time"
@@ -74,7 +77,7 @@ func run() error {
 	cntrManager := controller.NewManager(store)
 
 	//// Docs
-	se := echoswagger.New(e, "docs/", &echoswagger.Info{
+	swagRoot := echoswagger.New(e, "docs/", &echoswagger.Info{
 		Title:          "Swagger Omnimanage",
 		Description:    "Omnimanage description.  You can find out more about     Swagger at [http://swagger.io](http://swagger.io) or on [irc.freenode.net, #swagger](http://swagger.io/irc/).      For this sample, you can use the api key `special-key` to test the authorization     filters.",
 		Version:        "1.0.0",
@@ -87,15 +90,19 @@ func run() error {
 			URL:  "http://www.apache.org/licenses/LICENSE-2.0.html",
 		},
 	})
-	se.SetExternalDocs("Find out more about Swagger", "http://swagger.io").
-		SetResponseContentType("application/xml", "application/json").
+	swagRoot.SetExternalDocs("Find out more about Swagger", "http://swagger.io").
+		SetResponseContentType(jsonapi.MediaType).
 		SetUI(echoswagger.UISetting{DetachSpec: true, HideTop: true}).
 		SetScheme("https", "http")
 
 	// Routes
 
 	// Company
-	companyGrp := e.Group("/companies/:idComp") //se.Group("Company", "/companies")
+	companyGrp := e.Group("/companies/:idComp")
+
+	//swagComp := swagRoot.BindGroup("Company", companyGrp).
+	//	SetDescription("Companies operations")
+
 	//{
 	//	companyGrp.GET("", nil)
 	//	companyGrp.GET("/:cid", nil).AddParamPath(0, "cid", "Company ID")
@@ -103,28 +110,43 @@ func run() error {
 
 	// User routes
 	{
+		//userGrp := swagRoot.Group("Users", "/users")
+		userGrp := companyGrp.Group("/users")
+		swagUser := swagRoot.BindGroup("Users", userGrp)
 
-		userRoutes := companyGrp.Group("/users")
-		//userRoutes := se.Group("Users", "/company/users")
-		userRoutes.GET("", cntrManager.User.GetList)
-		userRoutes.GET("/:id", cntrManager.User.GetOne)
-		userRoutes.POST("/", cntrManager.User.Create)
-		userRoutes.PATCH("/:id", cntrManager.User.Update)
-		userRoutes.DELETE("/:id", cntrManager.User.Delete)
+		defUser := new(webmodels.User)
+		newDefUser, err := converter.ModelToOutput(defUser)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		swagUser.GET("", cntrManager.User.GetList).
+			AddResponse(http.StatusOK, "successful operation", newDefUser, nil).
+			SetResponseContentType(jsonapi.MediaType)
+
+		swagUser.GET("/:id", cntrManager.User.GetOne)
+		swagUser.POST("/", cntrManager.User.Create).
+			AddParamBody(newDefUser, "Body", "Param body!", true)
+
+		swagUser.PATCH("/:id", cntrManager.User.Update)
+		swagUser.DELETE("/:id", cntrManager.User.Delete)
 
 		// relations
-		userRoutes.GET("/:id/relationships/:rel", cntrManager.User.GetRelation)
-		userRoutes.Match(
-			[]string{"PATCH", "POST", "DELETE"},
-			"/:id/relationships/:rel",
-			cntrManager.User.ModifyRelation)
+		swagUser.GET("/:id/relationships/:rel", cntrManager.User.GetRelation)
+		//userGrp.Match(
+		//	[]string{"PATCH", "POST", "DELETE"},
+		//	"/:id/relationships/:rel",
+		//	cntrManager.User.ModifyRelation)
 	}
 
 	// Role routes
 	{
-		roleRoutes := companyGrp.Group("/roles")
-		roleRoutes.GET("", cntrManager.Role.GetList)
-		roleRoutes.GET("/:id", cntrManager.Role.GetOne)
+		//roleRoutes := companyGrp.Group("/roles")
+		roleGrp := companyGrp.Group("/roles")
+		swagRole := swagRoot.BindGroup("Roles", roleGrp)
+
+		swagRole.GET("", cntrManager.Role.GetList)
+		swagRole.GET("/:id", cntrManager.Role.GetOne)
 	}
 
 	// Start Server
