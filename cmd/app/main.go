@@ -17,8 +17,6 @@ import (
 	omnimiddleware "omnimanage/internal/middleware"
 	"omnimanage/internal/store"
 	omniErr "omnimanage/pkg/error"
-	webmodels "omnimanage/pkg/model/web"
-	"omnimanage/pkg/utils/converter"
 	"os"
 	"os/signal"
 	"time"
@@ -51,12 +49,6 @@ func run() error {
 
 	store := store.NewStore(db)
 
-	// Init service manager
-	//serviceManager, err := service.NewManager(store)
-	//if err != nil {
-	//	return fmt.Errorf("store.New failed: %w", err)
-	//}
-
 	// Init echo instance
 	e := echo.New()
 	e.Debug = cfg.App.Debug
@@ -76,24 +68,8 @@ func run() error {
 	// Controllers
 	cntrManager := controller.NewManager(store)
 
-	//// Docs
-	swagRoot := echoswagger.New(e, "docs/", &echoswagger.Info{
-		Title:          "Swagger Omnimanage",
-		Description:    "Omnimanage description.  You can find out more about     Swagger at [http://swagger.io](http://swagger.io) or on [irc.freenode.net, #swagger](http://swagger.io/irc/).      For this sample, you can use the api key `special-key` to test the authorization     filters.",
-		Version:        "1.0.0",
-		TermsOfService: "http://swagger.io/terms/",
-		Contact: &echoswagger.Contact{
-			Email: "apiteam@swagger.io",
-		},
-		License: &echoswagger.License{
-			Name: "Apache 2.0",
-			URL:  "http://www.apache.org/licenses/LICENSE-2.0.html",
-		},
-	})
-	swagRoot.SetExternalDocs("Find out more about Swagger", "http://swagger.io").
-		SetResponseContentType(jsonapi.MediaType).
-		SetUI(echoswagger.UISetting{DetachSpec: true, HideTop: true}).
-		SetScheme("https", "http")
+	// Swag API
+	swagRoot := getSwagRoot(e)
 
 	// Routes
 
@@ -110,33 +86,13 @@ func run() error {
 
 	// User routes
 	{
-		//userGrp := swagRoot.Group("Users", "/users")
-		userGrp := companyGrp.Group("/users")
-		swagUser := swagRoot.BindGroup("Users", userGrp)
-
-		defUser := new(webmodels.User)
-		newDefUser, err := converter.ModelToOutput(defUser)
+		//userGrp := companyGrp.Group("/users")
+		swagUser := swagRoot.BindGroup("Users", companyGrp.Group("/users"))
+		err := cntrManager.User.Init(swagUser)
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		swagUser.GET("", cntrManager.User.GetList).
-			AddResponse(http.StatusOK, "successful operation", newDefUser, nil).
-			SetResponseContentType(jsonapi.MediaType)
-
-		swagUser.GET("/:id", cntrManager.User.GetOne)
-		swagUser.POST("/", cntrManager.User.Create).
-			AddParamBody(newDefUser, "Body", "Param body!", true)
-
-		swagUser.PATCH("/:id", cntrManager.User.Update)
-		swagUser.DELETE("/:id", cntrManager.User.Delete)
-
-		// relations
-		swagUser.GET("/:id/relationships/:rel", cntrManager.User.GetRelation)
-		//userGrp.Match(
-		//	[]string{"PATCH", "POST", "DELETE"},
-		//	"/:id/relationships/:rel",
-		//	cntrManager.User.ModifyRelation)
 	}
 
 	// Role routes
@@ -173,6 +129,29 @@ func run() error {
 	}
 
 	return nil
+}
+
+func getSwagRoot(e *echo.Echo) echoswagger.ApiRoot {
+	swagRoot := echoswagger.New(e, "docs/", &echoswagger.Info{
+		Title:          "Swagger Omnimanage",
+		Description:    "Omnimanage description.  You can find out more about     Swagger at [http://swagger.io](http://swagger.io) or on [irc.freenode.net, #swagger](http://swagger.io/irc/).      For this sample, you can use the api key `special-key` to test the authorization     filters.",
+		Version:        "1.0.0",
+		TermsOfService: "http://swagger.io/terms/",
+		Contact: &echoswagger.Contact{
+			Email: "apiteam@swagger.io",
+		},
+		License: &echoswagger.License{
+			Name: "Apache 2.0",
+			URL:  "http://www.apache.org/licenses/LICENSE-2.0.html",
+		},
+	})
+
+	swagRoot.SetExternalDocs("Find out more about Swagger", "http://swagger.io").
+		SetResponseContentType(jsonapi.MediaType).
+		SetUI(echoswagger.UISetting{DetachSpec: true, HideTop: true}).
+		SetScheme("https", "http")
+
+	return swagRoot
 }
 
 func getDB(cfg *config.Config) (*gorm.DB, error) {

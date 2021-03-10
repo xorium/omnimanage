@@ -2,7 +2,9 @@ package controller
 
 import (
 	"fmt"
+	"github.com/google/jsonapi"
 	"github.com/labstack/echo/v4"
+	"github.com/pangpanglabs/echoswagger/v2"
 	"github.com/pkg/errors"
 	"net/http"
 	"omnimanage/internal/store"
@@ -24,6 +26,46 @@ type UserController struct {
 
 func NewUserController(store *store.Store) *UserController {
 	return &UserController{store: store}
+}
+
+func (ctr *UserController) Init(g echoswagger.ApiGroup) error {
+	g.SetDescription("Operations about user")
+
+	outModelRec, err := converter.ModelSwagOutput(new(webmodels.User))
+	if err != nil {
+		return err
+	}
+
+	g.GET("/:id", ctr.GetOne).
+		AddResponse(http.StatusOK, "successful operation", &outModelRec, nil).
+		SetResponseContentType(jsonapi.MediaType).
+		SetSummary("Gets one user by id")
+
+	g.GET("", ctr.GetList).
+		SetSummary("Gets users list")
+
+	g.POST("/", ctr.Create).
+		AddParamBody(outModelRec, "body", "Created user object", true).
+		SetRequestContentType(jsonapi.MediaType).
+		SetSummary("Creates user")
+
+	g.PATCH("/:id", ctr.Update).
+		AddParamBody(outModelRec, "body", "Updates user object", true).
+		SetRequestContentType(jsonapi.MediaType).
+		SetSummary("Updates user")
+
+	g.DELETE("/:id", ctr.Delete).
+		SetResponseContentType(jsonapi.MediaType).
+		SetSummary("Deletes user by id")
+
+	// relations
+	g.GET("/:id/relationships/:rel", ctr.GetRelation)
+
+	g.POST("/:id/relationships/:rel", ctr.ModifyRelation)
+	g.PATCH("/:id/relationships/:rel", ctr.ModifyRelation)
+	g.DELETE("/:id/relationships/:rel", ctr.ModifyRelation)
+
+	return nil
 }
 
 // GetOne returns User
