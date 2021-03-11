@@ -1,4 +1,4 @@
-package web
+package domain
 
 type Rule struct {
 	ID                string                 `jsonapi:"primary,rules"`

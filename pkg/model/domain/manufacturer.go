@@ -1,4 +1,4 @@
-package web
+package domain
 
 type Manufacturer struct {
 	ID   string                 `jsonapi:"primary,manufacturers"`

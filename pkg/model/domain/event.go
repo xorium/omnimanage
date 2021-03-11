@@ -1,4 +1,4 @@
-package web
+package domain
 
 type Event struct {
 	ID           string                 `jsonapi:"primary,events"`

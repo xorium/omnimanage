@@ -7,80 +7,93 @@ import (
 	"github.com/pangpanglabs/echoswagger/v2"
 	"github.com/pkg/errors"
 	"net/http"
-	"omnimanage/internal/store"
+	"omnimanage/internal/service"
 	"omnimanage/internal/validator"
 	omniErr "omnimanage/pkg/error"
 	filt "omnimanage/pkg/filters"
-	"omnimanage/pkg/mapper"
-	"omnimanage/pkg/model/src"
-	webmodels "omnimanage/pkg/model/web"
+	"omnimanage/pkg/model/domain"
 	"omnimanage/pkg/utils/converter"
 	httpUtils "omnimanage/pkg/utils/http"
 )
 
 type UserController struct {
-	store *store.Store
-	//mapper *mapper.ModelMapper
+	//store *store.Store
+	manager *service.Manager
 	//logger
 }
 
-func NewUserController(store *store.Store) *UserController {
-	return &UserController{store: store}
+func NewUserController(manager *service.Manager) *UserController {
+	return &UserController{manager: manager}
 }
 
+// Init initializes routes and swag doc
 func (ctr *UserController) Init(g echoswagger.ApiGroup) error {
 	g.SetDescription("Operations about user")
 
-	outModelRec, err := converter.ModelSwagOutput(new(webmodels.User))
+	outModel, err := converter.GetExampleModelSwagOutput(new(domain.User))
 	if err != nil {
 		return err
 	}
 
-	g.GET("/:id", ctr.GetOne).
-		AddResponse(http.StatusOK, "successful operation", &outModelRec, nil).
+	outModelList, err := converter.GetExampleModelListSwagOutput(new(domain.User))
+	if err != nil {
+		return err
+	}
+
+	g.GET("/:user_id", ctr.GetOne).
+		AddParamPath("", "company_id", "Company ID").
+		AddParamPath("", "user_id", "User ID").
+		AddResponse(http.StatusOK, "User in JSON:API format", &outModel, nil).
 		SetResponseContentType(jsonapi.MediaType).
 		SetSummary("Gets one user by id")
 
 	g.GET("", ctr.GetList).
+		AddParamPath("", "company_id", "Company ID").
+		AddParamQuery("", "filter", "filter schema: filter[relation.relation_field][operator]=value", false).
+		AddResponse(http.StatusOK, "Users list in JSON:API format", &outModelList, nil).
+		SetResponseContentType(jsonapi.MediaType).
 		SetSummary("Gets users list")
 
 	g.POST("/", ctr.Create).
-		AddParamBody(outModelRec, "body", "Created user object", true).
+		AddParamBody(outModel, "body", "New user object", true).
 		SetRequestContentType(jsonapi.MediaType).
+		AddResponse(http.StatusOK, "User in JSON:API format", &outModel, nil).
 		SetSummary("Creates user")
 
-	g.PATCH("/:id", ctr.Update).
-		AddParamBody(outModelRec, "body", "Updates user object", true).
+	g.PATCH("/:user_id", ctr.Update).
+		AddParamBody(outModel, "body", "Updates user object", true).
 		SetRequestContentType(jsonapi.MediaType).
+		AddResponse(http.StatusOK, "User in JSON:API format", &outModel, nil).
 		SetSummary("Updates user")
 
-	g.DELETE("/:id", ctr.Delete).
+	g.DELETE("/:user_id", ctr.Delete).
 		SetResponseContentType(jsonapi.MediaType).
 		SetSummary("Deletes user by id")
 
 	// relations
-	g.GET("/:id/relationships/:rel", ctr.GetRelation)
+	g.GET("/:user_id/relationships/:relation_name", ctr.GetRelation).
+		AddParamQuery("", "relation_name", "User relations. Possible values: company, location, roles, subscriptions", true).
+		SetSummary("Gets user relation (company, location, roles, subscriptions)")
 
-	g.POST("/:id/relationships/:rel", ctr.ModifyRelation)
-	g.PATCH("/:id/relationships/:rel", ctr.ModifyRelation)
-	g.DELETE("/:id/relationships/:rel", ctr.ModifyRelation)
+	g.POST("/:user_id/relationships/:relation_name", ctr.ModifyRelation).
+		AddParamQuery("", "relation_name", "User relations. Possible values: company, location, roles, subscriptions", true).
+		SetSummary("Adds user relation (company, location, roles, subscriptions)")
+
+	g.PATCH("/:user_id/relationships/:relation_name", ctr.ModifyRelation).
+		AddParamQuery("", "relation_name", "User relations. Possible values: company, location, roles, subscriptions", true).
+		SetSummary("Updates user relation (company, location, roles, subscriptions)")
+
+	g.DELETE("/:user_id/relationships/:relation_name", ctr.ModifyRelation).
+		AddParamQuery("", "relation_name", "User relations. Possible values: company, location, roles, subscriptions", true).
+		SetSummary("Deletes user relation (company, location, roles, subscriptions)")
 
 	return nil
 }
 
 // GetOne returns User
 func (ctr *UserController) GetOne(ctx echo.Context) error {
-	idSrc, err := mapper.Get().GetSrcID(ctx.Param("id"), &src.User{})
-	if err != nil {
-		switch {
-		case errors.Cause(err) == omniErr.ErrBadRequest:
-			return omniErr.NewHTTPError(http.StatusBadRequest, omniErr.ErrTitleResourceNotFound, err)
-		default:
-			return omniErr.NewHTTPError(http.StatusInternalServerError, omniErr.ErrTitleInternal, err)
-		}
-	}
 
-	user, err := ctr.store.Users.GetOne(ctx.Request().Context(), idSrc)
+	user, err := ctr.manager.User.GetOne(ctx.Request().Context(), ctx.Param("user_id"))
 	if err != nil {
 		switch {
 		case errors.Cause(err) == omniErr.ErrResourceNotFound:
@@ -90,12 +103,7 @@ func (ctr *UserController) GetOne(ctx echo.Context) error {
 		}
 	}
 
-	webUser, err := user.ToWeb()
-	if err != nil {
-		return omniErr.NewHTTPError(http.StatusInternalServerError, omniErr.ErrTitleInternal, err)
-	}
-
-	err = httpUtils.SetResponse(ctx, http.StatusOK, webUser)
+	err = httpUtils.SetResponse(ctx, http.StatusOK, user)
 	if err != nil {
 		return omniErr.NewHTTPError(http.StatusInternalServerError, omniErr.ErrTitleInternal, err)
 	}
@@ -106,7 +114,8 @@ func (ctr *UserController) GetOne(ctx echo.Context) error {
 // GetList returns users list
 func (ctr *UserController) GetList(ctx echo.Context) error {
 
-	srcFilters, err := filt.ParseFiltersFromQueryToSrcModel(ctx.Request().URL.RawQuery, &webmodels.User{}, &src.User{})
+	//srcFilters, err := filt.ParseFiltersFromQueryToSrcModel(ctx.Request().URL.RawQuery, &webmodels.User{}, &src.User{})
+	filterStrings, err := filt.ParseQueryString(ctx.Request().URL.RawQuery, &domain.User{})
 	if err != nil {
 		switch {
 		case errors.Cause(err) == omniErr.ErrBadRequest:
@@ -116,7 +125,7 @@ func (ctr *UserController) GetList(ctx echo.Context) error {
 		}
 	}
 
-	users, err := ctr.store.Users.GetList(ctx.Request().Context(), srcFilters)
+	users, err := ctr.manager.User.GetList(ctx.Request().Context(), filterStrings)
 	if err != nil {
 		switch {
 		case errors.Cause(err) == omniErr.ErrResourceNotFound:
@@ -126,12 +135,12 @@ func (ctr *UserController) GetList(ctx echo.Context) error {
 		}
 	}
 
-	webUsers, err := users.ToWeb()
-	if err != nil {
-		return omniErr.NewHTTPError(http.StatusInternalServerError, omniErr.ErrTitleInternal, err)
-	}
+	//webUsers, err := users.ToWeb()
+	//if err != nil {
+	//	return omniErr.NewHTTPError(http.StatusInternalServerError, omniErr.ErrTitleInternal, err)
+	//}
 
-	err = httpUtils.SetResponse(ctx, http.StatusOK, webUsers)
+	err = httpUtils.SetResponse(ctx, http.StatusOK, users)
 	if err != nil {
 		return omniErr.NewHTTPError(http.StatusInternalServerError, omniErr.ErrTitleInternal, err)
 	}
@@ -141,77 +150,96 @@ func (ctr *UserController) GetList(ctx echo.Context) error {
 // GetRelation returns relation data
 func (ctr *UserController) GetRelation(ctx echo.Context) error {
 
-	idSrc, err := mapper.Get().GetSrcID(ctx.Param("id"), &src.User{})
-	if err != nil {
-		switch {
-		case errors.Cause(err) == omniErr.ErrBadRequest:
-			return omniErr.NewHTTPError(http.StatusBadRequest, omniErr.ErrTitleResourceNotFound, err)
-		default:
-			return omniErr.NewHTTPError(http.StatusInternalServerError, omniErr.ErrTitleInternal, err)
-		}
-	}
-
-	user, err := ctr.store.Users.GetOne(ctx.Request().Context(), idSrc)
+	relModel, err := ctr.manager.User.GetRelation(ctx.Request().Context(), ctx.Param("user_id"), ctx.Param("relation_name"))
 	if err != nil {
 		switch {
 		case errors.Cause(err) == omniErr.ErrResourceNotFound:
 			return omniErr.NewHTTPError(http.StatusNotFound, omniErr.ErrTitleResourceNotFound, err)
+		case errors.Cause(err) == omniErr.ErrBadRequest:
+			return omniErr.NewHTTPError(http.StatusBadRequest, omniErr.ErrTitleResourceNotFound, err)
+
 		default:
 			return omniErr.NewHTTPError(http.StatusInternalServerError, omniErr.ErrTitleInternal, err)
 		}
 	}
 
-	relName := ctx.Param("rel")
-	switch relName {
-	case "location":
-		loc, err := ctr.store.Locations.GetOne(ctx.Request().Context(), user.LocationID)
-		if err != nil {
-			switch {
-			case errors.Cause(err) == omniErr.ErrResourceNotFound:
-				return omniErr.NewHTTPError(http.StatusNotFound, omniErr.ErrTitleResourceNotFound, err)
-			default:
-				return omniErr.NewHTTPError(http.StatusInternalServerError, omniErr.ErrTitleInternal, err)
-			}
-		}
-
-		web, err := loc.ToWeb()
-		if err != nil {
-			return omniErr.NewHTTPError(http.StatusInternalServerError, omniErr.ErrTitleInternal, err)
-		}
-		err = httpUtils.SetResponse(ctx, http.StatusOK, web)
-		if err != nil {
-			return omniErr.NewHTTPError(http.StatusInternalServerError, omniErr.ErrTitleInternal, err)
-		}
-
-	case "roles":
-		srcFilters, err := filt.GetSrcFiltersFromRelationID(user.Roles)
-		if err != nil {
-			return omniErr.NewHTTPError(http.StatusInternalServerError, omniErr.ErrTitleInternal, err)
-		}
-
-		srcList, err := ctr.store.Roles.GetList(ctx.Request().Context(), srcFilters)
-		if err != nil {
-			switch {
-			case errors.Cause(err) == omniErr.ErrResourceNotFound:
-				return omniErr.NewHTTPError(http.StatusNotFound, omniErr.ErrTitleResourceNotFound, err)
-			default:
-				return omniErr.NewHTTPError(http.StatusInternalServerError, omniErr.ErrTitleInternal, err)
-			}
-		}
-
-		webList, err := srcList.ToWeb()
-		if err != nil {
-			return omniErr.NewHTTPError(http.StatusInternalServerError, omniErr.ErrTitleInternal, err)
-		}
-
-		err = httpUtils.SetResponse(ctx, http.StatusOK, webList)
-		if err != nil {
-			return omniErr.NewHTTPError(http.StatusInternalServerError, omniErr.ErrTitleInternal, err)
-		}
-	default:
-		return omniErr.NewHTTPError(http.StatusForbidden, omniErr.ErrTitleResourceNotFound,
-			fmt.Errorf("%w wrong relation name '%v'", omniErr.ErrResourceNotFound, relName))
+	err = httpUtils.SetResponse(ctx, http.StatusOK, relModel)
+	if err != nil {
+		return omniErr.NewHTTPError(http.StatusInternalServerError, omniErr.ErrTitleInternal, err)
 	}
+
+	//idSrc, err := mapper.Get().GetSrcID(ctx.Param("user_id"), &src.User{})
+	//if err != nil {
+	//	switch {
+	//	case errors.Cause(err) == omniErr.ErrBadRequest:
+	//		return omniErr.NewHTTPError(http.StatusBadRequest, omniErr.ErrTitleResourceNotFound, err)
+	//	default:
+	//		return omniErr.NewHTTPError(http.StatusInternalServerError, omniErr.ErrTitleInternal, err)
+	//	}
+	//}
+	//
+	//user, err := ctr.store.Users.GetOne(ctx.Request().Context(), idSrc)
+	//if err != nil {
+	//	switch {
+	//	case errors.Cause(err) == omniErr.ErrResourceNotFound:
+	//		return omniErr.NewHTTPError(http.StatusNotFound, omniErr.ErrTitleResourceNotFound, err)
+	//	default:
+	//		return omniErr.NewHTTPError(http.StatusInternalServerError, omniErr.ErrTitleInternal, err)
+	//	}
+	//}
+	//
+	//
+	//relName := ctx.Param("relation_name")
+	//switch relName {
+	//case "location":
+	//	loc, err := ctr.store.Locations.GetOne(ctx.Request().Context(), user.LocationID)
+	//	if err != nil {
+	//		switch {
+	//		case errors.Cause(err) == omniErr.ErrResourceNotFound:
+	//			return omniErr.NewHTTPError(http.StatusNotFound, omniErr.ErrTitleResourceNotFound, err)
+	//		default:
+	//			return omniErr.NewHTTPError(http.StatusInternalServerError, omniErr.ErrTitleInternal, err)
+	//		}
+	//	}
+	//
+	//	web, err := loc.ToWeb()
+	//	if err != nil {
+	//		return omniErr.NewHTTPError(http.StatusInternalServerError, omniErr.ErrTitleInternal, err)
+	//	}
+	//	err = httpUtils.SetResponse(ctx, http.StatusOK, web)
+	//	if err != nil {
+	//		return omniErr.NewHTTPError(http.StatusInternalServerError, omniErr.ErrTitleInternal, err)
+	//	}
+	//
+	//case "roles":
+	//	srcFilters, err := filt.GetSrcFiltersFromRelationID(user.Roles)
+	//	if err != nil {
+	//		return omniErr.NewHTTPError(http.StatusInternalServerError, omniErr.ErrTitleInternal, err)
+	//	}
+	//
+	//	srcList, err := ctr.store.Roles.GetList(ctx.Request().Context(), srcFilters)
+	//	if err != nil {
+	//		switch {
+	//		case errors.Cause(err) == omniErr.ErrResourceNotFound:
+	//			return omniErr.NewHTTPError(http.StatusNotFound, omniErr.ErrTitleResourceNotFound, err)
+	//		default:
+	//			return omniErr.NewHTTPError(http.StatusInternalServerError, omniErr.ErrTitleInternal, err)
+	//		}
+	//	}
+	//
+	//	webList, err := srcList.ToWeb()
+	//	if err != nil {
+	//		return omniErr.NewHTTPError(http.StatusInternalServerError, omniErr.ErrTitleInternal, err)
+	//	}
+	//
+	//	err = httpUtils.SetResponse(ctx, http.StatusOK, webList)
+	//	if err != nil {
+	//		return omniErr.NewHTTPError(http.StatusInternalServerError, omniErr.ErrTitleInternal, err)
+	//	}
+	//default:
+	//	return omniErr.NewHTTPError(http.StatusForbidden, omniErr.ErrTitleResourceNotFound,
+	//		fmt.Errorf("%w wrong relation name '%v'", omniErr.ErrResourceNotFound, relName))
+	//}
 
 	return nil
 }
@@ -219,9 +247,100 @@ func (ctr *UserController) GetRelation(ctx echo.Context) error {
 // ModifyRelation - create, delete, replace relations
 func (ctr *UserController) ModifyRelation(ctx echo.Context) error {
 
-	idSrc, err := mapper.Get().GetSrcID(ctx.Param("id"), &src.User{})
+	//idSrc, err := mapper.Get().GetSrcID(ctx.Param("user_id"), &src.User{})
+	//if err != nil {
+	//	switch {
+	//	case errors.Cause(err) == omniErr.ErrBadRequest:
+	//		return omniErr.NewHTTPError(http.StatusBadRequest, omniErr.ErrTitleResourceNotFound, err)
+	//	default:
+	//		return omniErr.NewHTTPError(http.StatusInternalServerError, omniErr.ErrTitleInternal, err)
+	//	}
+	//}
+	var domRelationModel interface{}
+	webRelName := ctx.Param("relation_name")
+	switch webRelName {
+	case "location":
+		domRelationModel = new(domain.Location)
+		err := httpUtils.UnmarshalFromRequest(domRelationModel, ctx.Request().Body)
+		if err != nil {
+			return omniErr.NewHTTPError(http.StatusBadRequest, omniErr.ErrTitleBadRequest, err)
+		}
+		//
+		//srcModelsNew, err := new(src.Location).ScanFromWeb(webModel)
+		//if err != nil {
+		//	return omniErr.NewHTTPError(http.StatusBadRequest, omniErr.ErrTitleResourceNotFound, err)
+		//}
+		//
+		//srcRelName := "Location"
+		//switch ctx.Request().Method {
+		//case http.MethodPatch:
+		//	err = ctr.store.Users.ReplaceRelation(ctx.Request().Context(), idSrc, srcRelName, srcModelsNew)
+		//case http.MethodPost:
+		//	err = ctr.store.Users.AppendRelation(ctx.Request().Context(), idSrc, srcRelName, srcModelsNew)
+		//case http.MethodDelete:
+		//	err = ctr.store.Users.DeleteRelation(ctx.Request().Context(), idSrc, srcRelName, srcModelsNew)
+		//}
+		//if err != nil {
+		//	switch {
+		//	case errors.Cause(err) == omniErr.ErrResourceNotFound:
+		//		return omniErr.NewHTTPError(http.StatusNotFound, omniErr.ErrTitleResourceNotFound, err)
+		//	default:
+		//		return omniErr.NewHTTPError(http.StatusInternalServerError, omniErr.ErrTitleInternal, err)
+		//	}
+		//}
+
+	case "roles":
+		domRecordsIntf, err := httpUtils.UnmarshalManyFromRequest(new(domain.Role), ctx.Request().Body)
+		if err != nil {
+			return omniErr.NewHTTPError(http.StatusBadRequest, omniErr.ErrTitleBadRequest, err)
+		}
+
+		var domModels []*domain.Role
+		err = converter.SliceI2SliceModel(domRecordsIntf, &domModels)
+		if err != nil {
+			return omniErr.NewHTTPError(http.StatusInternalServerError, omniErr.ErrTitleInternal, err)
+		}
+
+		domRelationModel = domModels
+		//srcModelsNew, err := src.Roles.ScanFromWeb(nil, webModels)
+		//if err != nil {
+		//	return omniErr.NewHTTPError(http.StatusBadRequest, omniErr.ErrTitleResourceNotFound, err)
+		//}
+		//
+		//srcRelName := "Roles"
+		//switch ctx.Request().Method {
+		//case http.MethodPatch:
+		//	err = ctr.store.Users.ReplaceRelation(ctx.Request().Context(), idSrc, srcRelName, srcModelsNew)
+		//case http.MethodPost:
+		//	err = ctr.store.Users.AppendRelation(ctx.Request().Context(), idSrc, srcRelName, srcModelsNew)
+		//case http.MethodDelete:
+		//	err = ctr.store.Users.DeleteRelation(ctx.Request().Context(), idSrc, srcRelName, srcModelsNew)
+		//}
+		//if err != nil {
+		//	switch {
+		//	case errors.Cause(err) == omniErr.ErrResourceNotFound:
+		//		return omniErr.NewHTTPError(http.StatusNotFound, omniErr.ErrTitleResourceNotFound, err)
+		//	default:
+		//		return omniErr.NewHTTPError(http.StatusInternalServerError, omniErr.ErrTitleInternal, err)
+		//	}
+		//}
+
+	default:
+		return omniErr.NewHTTPError(http.StatusForbidden, omniErr.ErrTitleResourceNotFound,
+			fmt.Errorf("%w wrong relation name '%v'", omniErr.ErrResourceNotFound, webRelName))
+	}
+
+	err := ctr.manager.User.ModifyRelation(
+		ctx.Request().Context(),
+		ctx.Param("user_id"),
+		webRelName,
+		service.GetRelationOperFromHTTPMethod(ctx.Request().Method),
+		domRelationModel,
+	)
 	if err != nil {
 		switch {
+		case errors.Cause(err) == omniErr.ErrResourceNotFound:
+			return omniErr.NewHTTPError(http.StatusNotFound, omniErr.ErrTitleResourceNotFound, err)
 		case errors.Cause(err) == omniErr.ErrBadRequest:
 			return omniErr.NewHTTPError(http.StatusBadRequest, omniErr.ErrTitleResourceNotFound, err)
 		default:
@@ -229,102 +348,42 @@ func (ctr *UserController) ModifyRelation(ctx echo.Context) error {
 		}
 	}
 
-	webRelName := ctx.Param("rel")
-	switch webRelName {
-	case "location":
-		webModel := new(webmodels.Location)
-		err := httpUtils.UnmarshalFromRequest(webModel, ctx.Request().Body)
-		if err != nil {
-			return omniErr.NewHTTPError(http.StatusBadRequest, omniErr.ErrTitleBadRequest, err)
-		}
-
-		srcModelsNew, err := new(src.Location).ScanFromWeb(webModel)
-		if err != nil {
-			return omniErr.NewHTTPError(http.StatusBadRequest, omniErr.ErrTitleResourceNotFound, err)
-		}
-
-		srcRelName := "Location"
-		switch ctx.Request().Method {
-		case http.MethodPatch:
-			err = ctr.store.Users.ReplaceRelation(ctx.Request().Context(), idSrc, srcRelName, srcModelsNew)
-		case http.MethodPost:
-			err = ctr.store.Users.AppendRelation(ctx.Request().Context(), idSrc, srcRelName, srcModelsNew)
-		case http.MethodDelete:
-			err = ctr.store.Users.DeleteRelation(ctx.Request().Context(), idSrc, srcRelName, srcModelsNew)
-		}
-		if err != nil {
-			switch {
-			case errors.Cause(err) == omniErr.ErrResourceNotFound:
-				return omniErr.NewHTTPError(http.StatusNotFound, omniErr.ErrTitleResourceNotFound, err)
-			default:
-				return omniErr.NewHTTPError(http.StatusInternalServerError, omniErr.ErrTitleInternal, err)
-			}
-		}
-
-	case "roles":
-
-		webRecordsIntf, err := httpUtils.UnmarshalManyFromRequest(new(webmodels.Role), ctx.Request().Body)
-		if err != nil {
-			return omniErr.NewHTTPError(http.StatusBadRequest, omniErr.ErrTitleBadRequest, err)
-		}
-
-		var webModels []*webmodels.Role
-		err = converter.SliceI2SliceModel(webRecordsIntf, &webModels)
-		if err != nil {
-			return omniErr.NewHTTPError(http.StatusInternalServerError, omniErr.ErrTitleInternal, err)
-		}
-
-		srcModelsNew, err := src.Roles.ScanFromWeb(nil, webModels)
-		if err != nil {
-			return omniErr.NewHTTPError(http.StatusBadRequest, omniErr.ErrTitleResourceNotFound, err)
-		}
-
-		srcRelName := "Roles"
-		switch ctx.Request().Method {
-		case http.MethodPatch:
-			err = ctr.store.Users.ReplaceRelation(ctx.Request().Context(), idSrc, srcRelName, srcModelsNew)
-		case http.MethodPost:
-			err = ctr.store.Users.AppendRelation(ctx.Request().Context(), idSrc, srcRelName, srcModelsNew)
-		case http.MethodDelete:
-			err = ctr.store.Users.DeleteRelation(ctx.Request().Context(), idSrc, srcRelName, srcModelsNew)
-		}
-		if err != nil {
-			switch {
-			case errors.Cause(err) == omniErr.ErrResourceNotFound:
-				return omniErr.NewHTTPError(http.StatusNotFound, omniErr.ErrTitleResourceNotFound, err)
-			default:
-				return omniErr.NewHTTPError(http.StatusInternalServerError, omniErr.ErrTitleInternal, err)
-			}
-		}
-
-	default:
-		return omniErr.NewHTTPError(http.StatusForbidden, omniErr.ErrTitleResourceNotFound,
-			fmt.Errorf("%w wrong relation name '%v'", omniErr.ErrResourceNotFound, webRelName))
-	}
-
 	return nil
-
 }
 
 // Create creates user
 func (ctr *UserController) Create(ctx echo.Context) error {
-	webModel := new(webmodels.User)
-	err := httpUtils.UnmarshalFromRequest(webModel, ctx.Request().Body)
+	domModel := new(domain.User)
+	err := httpUtils.UnmarshalFromRequest(domModel, ctx.Request().Body)
 	if err != nil {
 		return omniErr.NewHTTPError(http.StatusBadRequest, omniErr.ErrTitleResourceNotFound, err)
 	}
 
-	err = validator.ValidateStruct(webModel)
+	err = validator.ValidateStruct(domModel)
 	if err != nil {
 		return omniErr.NewHTTPError(http.StatusUnprocessableEntity, omniErr.ErrTitleValidation, err)
 	}
 
-	srcUser, err := new(src.User).ScanFromWeb(webModel)
-	if err != nil {
-		return omniErr.NewHTTPError(http.StatusBadRequest, omniErr.ErrTitleResourceNotFound, err)
-	}
-
-	user, err := ctr.store.Users.Create(ctx.Request().Context(), srcUser)
+	//srcUser, err := new(src.User).ScanFromWeb(domModel)
+	//if err != nil {
+	//	return omniErr.NewHTTPError(http.StatusBadRequest, omniErr.ErrTitleResourceNotFound, err)
+	//}
+	//
+	//user, err := ctr.store.Users.Create(ctx.Request().Context(), srcUser)
+	//if err != nil {
+	//	switch {
+	//	case errors.Cause(err) == omniErr.ErrResourceExists:
+	//		return omniErr.NewHTTPError(http.StatusConflict, omniErr.ErrTitleResourceExists, err)
+	//	default:
+	//		return omniErr.NewHTTPError(http.StatusInternalServerError, omniErr.ErrTitleInternal, err)
+	//	}
+	//}
+	//
+	//webUser, err := user.ToWeb()
+	//if err != nil {
+	//	return omniErr.NewHTTPError(http.StatusInternalServerError, omniErr.ErrTitleInternal, err)
+	//}
+	newUser, err := ctr.manager.User.Create(ctx.Request().Context(), domModel)
 	if err != nil {
 		switch {
 		case errors.Cause(err) == omniErr.ErrResourceExists:
@@ -334,12 +393,7 @@ func (ctr *UserController) Create(ctx echo.Context) error {
 		}
 	}
 
-	webUser, err := user.ToWeb()
-	if err != nil {
-		return omniErr.NewHTTPError(http.StatusInternalServerError, omniErr.ErrTitleInternal, err)
-	}
-
-	err = httpUtils.SetResponse(ctx, http.StatusOK, webUser)
+	err = httpUtils.SetResponse(ctx, http.StatusOK, newUser)
 	if err != nil {
 		return omniErr.NewHTTPError(http.StatusInternalServerError, omniErr.ErrTitleInternal, err)
 	}
@@ -350,33 +404,48 @@ func (ctr *UserController) Create(ctx echo.Context) error {
 // Update updates user attributes
 func (ctr *UserController) Update(ctx echo.Context) error {
 
-	webModel := new(webmodels.User)
-	err := httpUtils.UnmarshalFromRequest(webModel, ctx.Request().Body)
+	domModel := new(domain.User)
+	err := httpUtils.UnmarshalFromRequest(domModel, ctx.Request().Body)
 	if err != nil {
 		return omniErr.NewHTTPError(http.StatusBadRequest, omniErr.ErrTitleResourceNotFound, err)
 	}
 
-	srcUser, err := new(src.User).ScanFromWeb(webModel)
+	err = validator.ValidateStruct(domModel)
 	if err != nil {
-		return omniErr.NewHTTPError(http.StatusBadRequest, omniErr.ErrTitleResourceNotFound, err)
+		return omniErr.NewHTTPError(http.StatusUnprocessableEntity, omniErr.ErrTitleValidation, err)
 	}
 
-	user, err := ctr.store.Users.Update(ctx.Request().Context(), srcUser)
+	//srcUser, err := new(src.User).ScanFromWeb(domModel)
+	//if err != nil {
+	//	return omniErr.NewHTTPError(http.StatusBadRequest, omniErr.ErrTitleResourceNotFound, err)
+	//}
+	//
+	//user, err := ctr.store.Users.Update(ctx.Request().Context(), srcUser)
+	//if err != nil {
+	//	switch {
+	//	case errors.Cause(err) == omniErr.ErrResourceNotFound:
+	//		return omniErr.NewHTTPError(http.StatusBadRequest, omniErr.ErrTitleResourceNotFound, err)
+	//	default:
+	//		return omniErr.NewHTTPError(http.StatusInternalServerError, omniErr.ErrTitleInternal, err)
+	//	}
+	//}
+	//
+	//webUser, err := user.ToWeb()
+	//if err != nil {
+	//	return omniErr.NewHTTPError(http.StatusInternalServerError, omniErr.ErrTitleInternal, err)
+	//}
+
+	newUser, err := ctr.manager.User.Update(ctx.Request().Context(), domModel)
 	if err != nil {
 		switch {
-		case errors.Cause(err) == omniErr.ErrResourceNotFound:
-			return omniErr.NewHTTPError(http.StatusBadRequest, omniErr.ErrTitleResourceNotFound, err)
+		case errors.Cause(err) == omniErr.ErrResourceExists:
+			return omniErr.NewHTTPError(http.StatusConflict, omniErr.ErrTitleResourceExists, err)
 		default:
 			return omniErr.NewHTTPError(http.StatusInternalServerError, omniErr.ErrTitleInternal, err)
 		}
 	}
 
-	webUser, err := user.ToWeb()
-	if err != nil {
-		return omniErr.NewHTTPError(http.StatusInternalServerError, omniErr.ErrTitleInternal, err)
-	}
-
-	err = httpUtils.SetResponse(ctx, http.StatusOK, webUser)
+	err = httpUtils.SetResponse(ctx, http.StatusOK, newUser)
 	if err != nil {
 		return omniErr.NewHTTPError(http.StatusInternalServerError, omniErr.ErrTitleInternal, err)
 	}
@@ -387,21 +456,31 @@ func (ctr *UserController) Update(ctx echo.Context) error {
 
 // Delete deletes user
 func (ctr *UserController) Delete(ctx echo.Context) error {
-	idSrc, err := mapper.Get().GetSrcID(ctx.Param("id"), &src.User{})
-	if err != nil {
-		switch {
-		case errors.Cause(err) == omniErr.ErrBadRequest:
-			return omniErr.NewHTTPError(http.StatusBadRequest, omniErr.ErrTitleResourceNotFound, err)
-		default:
-			return omniErr.NewHTTPError(http.StatusInternalServerError, omniErr.ErrTitleInternal, err)
-		}
-	}
+	//idSrc, err := mapper.Get().GetSrcID(ctx.Param("user_id"), &src.User{})
+	//if err != nil {
+	//	switch {
+	//	case errors.Cause(err) == omniErr.ErrBadRequest:
+	//		return omniErr.NewHTTPError(http.StatusBadRequest, omniErr.ErrTitleResourceNotFound, err)
+	//	default:
+	//		return omniErr.NewHTTPError(http.StatusInternalServerError, omniErr.ErrTitleInternal, err)
+	//	}
+	//}
+	//
+	//err = ctr.store.Users.Delete(ctx.Request().Context(), idSrc)
+	//if err != nil {
+	//	switch {
+	//	case errors.Cause(err) == omniErr.ErrResourceNotFound:
+	//		return omniErr.NewHTTPError(http.StatusNotFound, omniErr.ErrTitleResourceNotFound, err)
+	//	default:
+	//		return omniErr.NewHTTPError(http.StatusInternalServerError, omniErr.ErrTitleInternal, err)
+	//	}
+	//}
 
-	err = ctr.store.Users.Delete(ctx.Request().Context(), idSrc)
+	err := ctr.manager.User.Delete(ctx.Request().Context(), ctx.Param("user_id"))
 	if err != nil {
 		switch {
-		case errors.Cause(err) == omniErr.ErrResourceNotFound:
-			return omniErr.NewHTTPError(http.StatusNotFound, omniErr.ErrTitleResourceNotFound, err)
+		case errors.Cause(err) == omniErr.ErrResourceExists:
+			return omniErr.NewHTTPError(http.StatusConflict, omniErr.ErrTitleResourceExists, err)
 		default:
 			return omniErr.NewHTTPError(http.StatusInternalServerError, omniErr.ErrTitleInternal, err)
 		}

@@ -31,7 +31,34 @@ func SliceI2SliceModel(srcSlice []interface{}, out interface{}) (errOut error) {
 	return nil
 }
 
-func ModelSwagOutput(model interface{}) (res interface{}, errOut error) {
+func GetExampleModelListSwagOutput(model interface{}) (res interface{}, errOut error) {
+	defer func() {
+		if r := recover(); r != nil {
+			errOut = fmt.Errorf("panic: %v", r)
+		}
+	}()
+
+	// set example values
+	err := defaults.Set(model)
+	if err != nil {
+		return nil, err
+	}
+
+	modelList := make([]interface{}, 0, 1)
+	modelList = append(modelList, model)
+
+	p, err := jsonapi.Marshal(modelList)
+	if err != nil {
+		return nil, err
+	}
+	manyPay, ok := p.(*jsonapi.ManyPayload)
+	if !ok {
+		return nil, fmt.Errorf("wrong model input")
+	}
+	return manyPay, nil
+}
+
+func GetExampleModelSwagOutput(model interface{}) (res interface{}, errOut error) {
 	defer func() {
 		if r := recover(); r != nil {
 			errOut = fmt.Errorf("panic: %v", r)
@@ -48,10 +75,11 @@ func ModelSwagOutput(model interface{}) (res interface{}, errOut error) {
 	if err != nil {
 		return nil, err
 	}
-	onePay := p.(*jsonapi.OnePayload)
-
+	onePay, ok := p.(*jsonapi.OnePayload)
+	if !ok {
+		return nil, fmt.Errorf("wrong model input")
+	}
 	return onePay, nil
-
 }
 
 //func MapToDyn(input map[string]interface{}) interface{} {

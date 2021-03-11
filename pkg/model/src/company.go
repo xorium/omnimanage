@@ -2,11 +2,11 @@ package src
 
 import (
 	"omnimanage/pkg/mapper"
-	webmodels "omnimanage/pkg/model/web"
+	webmodels "omnimanage/pkg/model/domain"
 )
 
 type Company struct {
-	ID   int    `gorm:"primaryKey" omni:"ID;src:ID2src;web:ID2web"`
+	ID   int    `gorm:"primaryKey" omni:"ID;src:ID2src;domain:ID2web"`
 	Name string `omni:"Name"`
 }
 
@@ -19,10 +19,10 @@ func (Company) TableName() string {
 //func (m *Company) GetModelMapper() []*mapper.ModelMap {
 //	return []*mapper.ModelMap{
 //		&mapper.ModelMap{SrcName: "ID", WebName: "ID",
-//			ConverterToSrc: func(web interface{}) (interface{}, error) {
-//				w, ok := web.(string)
+//			ConverterToSrc: func(domain interface{}) (interface{}, error) {
+//				w, ok := domain.(string)
 //				if !ok {
-//					return nil, fmt.Errorf("ID: Wrong type. Value %v, type %T", web, web)
+//					return nil, fmt.Errorf("ID: Wrong type. Value %v, type %T", domain, domain)
 //				}
 //				id, err := strconv.Atoi(w)
 //				if err != nil {

@@ -3,11 +3,11 @@ package src
 import (
 	"gorm.io/datatypes"
 	"omnimanage/pkg/mapper"
-	webmodels "omnimanage/pkg/model/web"
+	webmodels "omnimanage/pkg/model/domain"
 )
 
 type User struct {
-	ID            int            `gorm:"primaryKey" omni:"ID;src:ID2src;web:ID2web"`
+	ID            int            `gorm:"primaryKey" omni:"ID;src:ID2src;domain:ID2web"`
 	UserName      string         `omni:"Name"`
 	Password      string         `omni:"Password"`
 	FirstName     string         `omni:"FirstName"`
@@ -15,7 +15,7 @@ type User struct {
 	PhoneNumber   string         `omni:"PhoneNumber"`
 	Email         string         `omni:"Email"`
 	Image         string         `omni:"Image"`
-	Settings      datatypes.JSON `omni:"Settings;src:JSON2src;web:JSON2web"`
+	Settings      datatypes.JSON `omni:"Settings;src:JSON2src;domain:JSON2web"`
 	CompanyID     int
 	Company       *Company `gorm:"foreignKey:CompanyID" omni:"Company"`
 	LocationID    int
@@ -29,10 +29,10 @@ type Users []*User
 //func (m *User) GetModelMapper() []*mapper.ModelMap {
 //	return []*mapper.ModelMap{
 //		&mapper.ModelMap{SrcName: "ID", WebName: "ID",
-//			ConverterToSrc: func(web interface{}) (interface{}, error) {
-//				id, err := converters.IDWebToSrc(web)
+//			ConverterToSrc: func(domain interface{}) (interface{}, error) {
+//				id, err := converters.IDWebToSrc(domain)
 //				if err != nil {
-//					return nil, fmt.Errorf("ID: %v. %v", web, err)
+//					return nil, fmt.Errorf("ID: %v. %v", domain, err)
 //				}
 //				return id, nil
 //			},
@@ -52,10 +52,10 @@ type Users []*User
 //		&mapper.ModelMap{SrcName: "Email", WebName: "Email"},
 //		&mapper.ModelMap{SrcName: "Image", WebName: "Image"},
 //		&mapper.ModelMap{SrcName: "Settings", WebName: "Settings",
-//			ConverterToSrc: func(web interface{}) (interface{}, error) {
-//				j, err := converters.JSONWebToSrc(web)
+//			ConverterToSrc: func(domain interface{}) (interface{}, error) {
+//				j, err := converters.JSONWebToSrc(domain)
 //				if err != nil {
-//					return nil, fmt.Errorf("Settings: %v. %v", web, err)
+//					return nil, fmt.Errorf("Settings: %v. %v", domain, err)
 //				}
 //				return j, nil
 //			},

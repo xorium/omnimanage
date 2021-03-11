@@ -1,4 +1,4 @@
-package web
+package domain
 
 type Notification struct {
 	ID           string                 `jsonapi:"primary,users"`

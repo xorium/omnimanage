@@ -3,14 +3,14 @@ package src
 import (
 	"gorm.io/datatypes"
 	"omnimanage/pkg/mapper"
-	webmodels "omnimanage/pkg/model/web"
+	webmodels "omnimanage/pkg/model/domain"
 )
 
 type Rule struct {
-	ID                int            `gorm:"primaryKey" omni:"ID;src:ID2src;web:ID2web"`
+	ID                int            `gorm:"primaryKey" omni:"ID;src:ID2src;domain:ID2web"`
 	Title             string         `omni:"Title"`
 	Slug              string         `omni:"Slug"`
-	Expression        datatypes.JSON `omni:"Expression;src:JSON2src;web:JSON2web"`
+	Expression        datatypes.JSON `omni:"Expression;src:JSON2src;domain:JSON2web"`
 	Duration          int
 	EventLevel        string `omni:"EventLevel"`
 	EventSessionState string `omni:"EventSessionState"`
@@ -25,10 +25,10 @@ type Rules []*Rule
 //func (m *Rule) GetModelMapper() []*mapper.ModelMap {
 //	return []*mapper.ModelMap{
 //		&mapper.ModelMap{SrcName: "ID", WebName: "ID",
-//			ConverterToSrc: func(web interface{}) (interface{}, error) {
-//				id, err := converters.IDWebToSrc(web)
+//			ConverterToSrc: func(domain interface{}) (interface{}, error) {
+//				id, err := converters.IDWebToSrc(domain)
 //				if err != nil {
-//					return nil, fmt.Errorf("ID: %v. %v", web, err)
+//					return nil, fmt.Errorf("ID: %v. %v", domain, err)
 //				}
 //				return id, nil
 //			},
@@ -43,10 +43,10 @@ type Rules []*Rule
 //		&mapper.ModelMap{SrcName: "Title", WebName: "Title"},
 //		&mapper.ModelMap{SrcName: "Slug", WebName: "Slug"},
 //		&mapper.ModelMap{SrcName: "Expression", WebName: "Expression",
-//			ConverterToSrc: func(web interface{}) (interface{}, error) {
-//				j, err := converters.JSONWebToSrc(web)
+//			ConverterToSrc: func(domain interface{}) (interface{}, error) {
+//				j, err := converters.JSONWebToSrc(domain)
 //				if err != nil {
-//					return nil, fmt.Errorf("Expression: %v. %v", web, err)
+//					return nil, fmt.Errorf("Expression: %v. %v", domain, err)
 //				}
 //				return j, nil
 //			},

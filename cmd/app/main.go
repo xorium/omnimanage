@@ -15,6 +15,7 @@ import (
 	"omnimanage/internal/config"
 	"omnimanage/internal/controller"
 	omnimiddleware "omnimanage/internal/middleware"
+	"omnimanage/internal/service"
 	"omnimanage/internal/store"
 	omniErr "omnimanage/pkg/error"
 	"os"
@@ -38,15 +39,11 @@ func run() error {
 		log.Fatal("can't read config: %v", err)
 	}
 
-	// logger
-	// ...
-
 	// init store
 	db, err := getDB(cfg)
 	if err != nil {
 		return err
 	}
-
 	store := store.NewStore(db)
 
 	// Init echo instance
@@ -61,12 +58,19 @@ func run() error {
 		middleware.Recover(),
 		middleware.RequestID(),
 		middleware.RemoveTrailingSlash(),
+		middleware.CORS(),
 	)
 
 	//e.Use(middleware.Logger())
 
+	// Service Manager
+	svcManager, err := service.NewManager(store)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	// Controllers
-	cntrManager := controller.NewManager(store)
+	controlManager := controller.NewManager(svcManager)
 
 	// Swag API
 	swagRoot := getSwagRoot(e)
@@ -74,7 +78,7 @@ func run() error {
 	// Routes
 
 	// Company
-	companyGrp := e.Group("/companies/:idComp")
+	companyGrp := e.Group("/companies/:company_id")
 
 	//swagComp := swagRoot.BindGroup("Company", companyGrp).
 	//	SetDescription("Companies operations")
@@ -85,24 +89,15 @@ func run() error {
 	//}
 
 	// User routes
-	{
-		//userGrp := companyGrp.Group("/users")
-		swagUser := swagRoot.BindGroup("Users", companyGrp.Group("/users"))
-		err := cntrManager.User.Init(swagUser)
-		if err != nil {
-			log.Fatal(err)
-		}
-
+	err = controlManager.User.Init(swagRoot.BindGroup("Users", companyGrp.Group("/users")))
+	if err != nil {
+		log.Fatal(err)
 	}
 
 	// Role routes
-	{
-		//roleRoutes := companyGrp.Group("/roles")
-		roleGrp := companyGrp.Group("/roles")
-		swagRole := swagRoot.BindGroup("Roles", roleGrp)
-
-		swagRole.GET("", cntrManager.Role.GetList)
-		swagRole.GET("/:id", cntrManager.Role.GetOne)
+	err = controlManager.Role.Init(swagRoot.BindGroup("Roles", companyGrp.Group("/roles")))
+	if err != nil {
+		log.Fatal(err)
 	}
 
 	// Start Server

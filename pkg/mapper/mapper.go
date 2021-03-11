@@ -19,7 +19,7 @@ const (
 
 const (
 	ConverterToSrcTag = "src"
-	ConverterToWebTag = "web"
+	ConverterToWebTag = "domain"
 )
 
 type ModelMap struct {
@@ -225,7 +225,7 @@ func (m *ModelMapper) ConvertSrcToWeb(src interface{}, web interface{}) (errOut 
 
 		webField, ok := webS.FieldOk(val.WebName)
 		if !ok {
-			return fmt.Errorf("unknown web field %v", val.WebName)
+			return fmt.Errorf("unknown domain field %v", val.WebName)
 		}
 
 		if val.ConverterToWeb == nil { // no converter function -> simple conversion
@@ -341,7 +341,7 @@ func (m *ModelMapper) ConvertWebToSrc(web interface{}, src interface{}) (errOut 
 
 		webFieldValue, ok := webM[val.WebName]
 		if !ok {
-			return fmt.Errorf("unknown web field %v", val.WebName)
+			return fmt.Errorf("unknown domain field %v", val.WebName)
 		}
 
 		srcField, ok := srcS.FieldOk(val.SrcName)

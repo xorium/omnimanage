@@ -1,4 +1,4 @@
-package web
+package domain
 
 type Company struct {
 	ID   string `jsonapi:"primary,companies" default:"1"`

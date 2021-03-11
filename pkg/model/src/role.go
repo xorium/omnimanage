@@ -3,11 +3,11 @@ package src
 import (
 	"gorm.io/datatypes"
 	"omnimanage/pkg/mapper"
-	webmodels "omnimanage/pkg/model/web"
+	webmodels "omnimanage/pkg/model/domain"
 )
 
 type Role struct {
-	ID         int    `gorm:"primaryKey" omni:"ID;src:ID2src;web:ID2web"`
+	ID         int    `gorm:"primaryKey" omni:"ID;src:ID2src;domain:ID2web"`
 	Name       string `omni:"Name"`
 	Slug       string `omni:"Slug"`
 	Assigned   bool   `omni:"Assigned"`
@@ -23,10 +23,10 @@ type Roles []*Role
 //func (m *Role) GetModelMapper() []*mapper.ModelMap {
 //	return []*mapper.ModelMap{
 //		&mapper.ModelMap{SrcName: "ID", WebName: "ID",
-//			ConverterToSrc: func(web interface{}) (interface{}, error) {
-//				id, err := converters.IDWebToSrc(web)
+//			ConverterToSrc: func(domain interface{}) (interface{}, error) {
+//				id, err := converters.IDWebToSrc(domain)
 //				if err != nil {
-//					return nil, fmt.Errorf("ID: %v. %v", web, err)
+//					return nil, fmt.Errorf("ID: %v. %v", domain, err)
 //				}
 //				return id, nil
 //			},
@@ -43,10 +43,10 @@ type Roles []*Role
 //		&mapper.ModelMap{SrcName: "Assigned", WebName: "Assigned"},
 //		&mapper.ModelMap{SrcName: "Persistent", WebName: "Persistent"},
 //		&mapper.ModelMap{SrcName: "Info", WebName: "Info",
-//			ConverterToSrc: func(web interface{}) (interface{}, error) {
-//				j, err := converters.JSONWebToSrc(web)
+//			ConverterToSrc: func(domain interface{}) (interface{}, error) {
+//				j, err := converters.JSONWebToSrc(domain)
 //				if err != nil {
-//					return nil, fmt.Errorf("Info: %v. %v", web, err)
+//					return nil, fmt.Errorf("Info: %v. %v", domain, err)
 //				}
 //				return j, nil
 //			},

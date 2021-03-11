@@ -1,4 +1,4 @@
-package web
+package domain
 
 type User struct {
 	ID            string                 `jsonapi:"primary,users" default:"1"`

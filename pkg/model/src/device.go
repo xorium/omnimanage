@@ -3,7 +3,7 @@ package src
 import (
 	"gorm.io/datatypes"
 	"omnimanage/pkg/mapper"
-	webmodels "omnimanage/pkg/model/web"
+	webmodels "omnimanage/pkg/model/domain"
 )
 
 /////////////////////////////// Device
@@ -14,7 +14,7 @@ type Device struct {
 	Title       string         `omni:"Title"`
 	Description string         `omni:"Description"`
 	Kind        string         `omni:"Kind"`
-	Info        datatypes.JSON `omni:"Info;src:JSON2src;web:JSON2web"`
+	Info        datatypes.JSON `omni:"Info;src:JSON2src;domain:JSON2web"`
 	Image       string         `omni:"Image"`
 	CompanyID   int
 	Company     *Company `gorm:"foreignKey:CompanyID" omni:"Company"`
@@ -33,10 +33,10 @@ type Devices []*Device
 //func (m *Device) GetModelMapper() []*mapper.ModelMap {
 //	return []*mapper.ModelMap{
 //		&mapper.ModelMap{SrcName: "ID", WebName: "ID",
-//			ConverterToSrc: func(web interface{}) (interface{}, error) {
-//				id, err := converters.IDWebToSrc(web)
+//			ConverterToSrc: func(domain interface{}) (interface{}, error) {
+//				id, err := converters.IDWebToSrc(domain)
 //				if err != nil {
-//					return nil, fmt.Errorf("ID: %v. %v", web, err)
+//					return nil, fmt.Errorf("ID: %v. %v", domain, err)
 //				}
 //				return id, nil
 //			},
@@ -53,10 +53,10 @@ type Devices []*Device
 //		&mapper.ModelMap{SrcName: "Title", WebName: "Title"},
 //		&mapper.ModelMap{SrcName: "Description", WebName: "Description"},
 //		&mapper.ModelMap{SrcName: "Info", WebName: "Info",
-//			ConverterToSrc: func(web interface{}) (interface{}, error) {
-//				j, err := converters.JSONWebToSrc(web)
+//			ConverterToSrc: func(domain interface{}) (interface{}, error) {
+//				j, err := converters.JSONWebToSrc(domain)
 //				if err != nil {
-//					return nil, fmt.Errorf("Settings: %v. %v", web, err)
+//					return nil, fmt.Errorf("Settings: %v. %v", domain, err)
 //				}
 //				return j, nil
 //			},
@@ -132,11 +132,11 @@ func (m Devices) ScanFromWeb(web []*webmodels.Device) (Devices, error) {
 
 ///////////////////////////// DeviceGroup
 type DeviceGroup struct {
-	ID          int            `omni:"ID;src:ID2src;web:ID2web"`
+	ID          int            `omni:"ID;src:ID2src;domain:ID2web"`
 	Name        string         `omni:"Name"`
 	Description string         `omni:"Description"`
 	Type        string         `omni:"Type"`
-	Filters     datatypes.JSON `omni:"Filters;src:JSON2src;web:JSON2web"`
+	Filters     datatypes.JSON `omni:"Filters;src:JSON2src;domain:JSON2web"`
 	CompanyID   int
 	Company     *Company `gorm:"foreignKey:CompanyID" omni:"Company"`
 	Devices     Devices  `gorm:"many2many:device_group;joinForeignKey:GroupsID;JoinReferences:devices_id" omni:"Devices"`
@@ -149,10 +149,10 @@ type DeviceGroups []*DeviceGroup
 //func (m *DeviceGroup) GetModelMapper() []*mapper.ModelMap {
 //	return []*mapper.ModelMap{
 //		&mapper.ModelMap{SrcName: "ID", WebName: "ID",
-//			ConverterToSrc: func(web interface{}) (interface{}, error) {
-//				id, err := converters.IDWebToSrc(web)
+//			ConverterToSrc: func(domain interface{}) (interface{}, error) {
+//				id, err := converters.IDWebToSrc(domain)
 //				if err != nil {
-//					return nil, fmt.Errorf("ID: %v. %v", web, err)
+//					return nil, fmt.Errorf("ID: %v. %v", domain, err)
 //				}
 //				return id, nil
 //			},
@@ -168,10 +168,10 @@ type DeviceGroups []*DeviceGroup
 //		&mapper.ModelMap{SrcName: "Description", WebName: "Description"},
 //		&mapper.ModelMap{SrcName: "Type", WebName: "Type"},
 //		&mapper.ModelMap{SrcName: "Filters", WebName: "Filters",
-//			ConverterToSrc: func(web interface{}) (interface{}, error) {
-//				j, err := converters.JSONWebToSrc(web)
+//			ConverterToSrc: func(domain interface{}) (interface{}, error) {
+//				j, err := converters.JSONWebToSrc(domain)
 //				if err != nil {
-//					return nil, fmt.Errorf("Filters: %v. %v", web, err)
+//					return nil, fmt.Errorf("Filters: %v. %v", domain, err)
 //				}
 //				return j, nil
 //			},
@@ -244,7 +244,7 @@ func (m DeviceGroups) ScanFromWeb(web []*webmodels.DeviceGroup) (DeviceGroups, e
 
 /////////////////////////////// DeviceModel
 type DeviceModel struct {
-	ID             int    `gorm:"primaryKey" omni:"ID;src:ID2src;web:ID2web"`
+	ID             int    `gorm:"primaryKey" omni:"ID;src:ID2src;domain:ID2web"`
 	Name           string `omni:"Name"`
 	Title          string `omni:"Title"`
 	Description    string `omni:"Description"`
@@ -261,10 +261,10 @@ func (DeviceModel) TableName() string {
 //func (m *DeviceModel) GetModelMapper() []*mapper.ModelMap {
 //	return []*mapper.ModelMap{
 //		&mapper.ModelMap{SrcName: "ID", WebName: "ID",
-//			ConverterToSrc: func(web interface{}) (interface{}, error) {
-//				id, err := converters.IDWebToSrc(web)
+//			ConverterToSrc: func(domain interface{}) (interface{}, error) {
+//				id, err := converters.IDWebToSrc(domain)
 //				if err != nil {
-//					return nil, fmt.Errorf("ID: %v. %v", web, err)
+//					return nil, fmt.Errorf("ID: %v. %v", domain, err)
 //				}
 //				return id, nil
 //			},

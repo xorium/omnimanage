@@ -1,4 +1,4 @@
-package web
+package domain
 
 type Role struct {
 	ID         string                 `jsonapi:"primary,roles"`

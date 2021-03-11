@@ -1,4 +1,4 @@
-package web
+package domain
 
 type Device struct {
 	ID          string                 `jsonapi:"primary,devices"`

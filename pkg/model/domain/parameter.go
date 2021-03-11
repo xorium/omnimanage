@@ -1,4 +1,4 @@
-package web
+package domain
 
 type Parameter struct {
 	ID                string                 `jsonapi:"primary,parameters"`

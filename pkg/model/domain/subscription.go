@@ -1,4 +1,4 @@
-package web
+package domain
 
 type Subscription struct {
 	ID              string                 `jsonapi:"primary,subscriptions"`

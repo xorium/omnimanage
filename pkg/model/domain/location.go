@@ -1,4 +1,4 @@
-package web
+package domain
 
 type Location struct {
 	ID       string                 `jsonapi:"primary,locations" default:"123"`
