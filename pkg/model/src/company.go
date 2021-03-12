@@ -16,33 +16,6 @@ func (Company) TableName() string {
 	return "companies"
 }
 
-//func (m *Company) GetModelMapper() []*mapper.ModelMap {
-//	return []*mapper.ModelMap{
-//		&mapper.ModelMap{SrcName: "ID", WebName: "ID",
-//			ConverterToSrc: func(domain interface{}) (interface{}, error) {
-//				w, ok := domain.(string)
-//				if !ok {
-//					return nil, fmt.Errorf("ID: Wrong type. Value %v, type %T", domain, domain)
-//				}
-//				id, err := strconv.Atoi(w)
-//				if err != nil {
-//					return nil, fmt.Errorf("Wrong Company ID: %v", w)
-//				}
-//				return id, nil
-//			},
-//			ConverterToWeb: func(src interface{}) (interface{}, error) {
-//				s, ok := src.(int)
-//				if !ok {
-//					return nil, fmt.Errorf("ID: Wrong type. Value %v, type %T", src, src)
-//				}
-//				id := strconv.Itoa(s)
-//				return id, nil
-//			},
-//		},
-//		&mapper.ModelMap{SrcName: "Name", WebName: "Name"},
-//	}
-//}
-
 func (m *Company) ToWeb() (*webmodels.Company, error) {
 	web := new(webmodels.Company)
 	err := mapper.Get().ConvertSrcToWeb(m, &web)

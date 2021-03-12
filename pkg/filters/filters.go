@@ -493,7 +493,7 @@ func setFilterVal(filt reflect.Value, fieldType reflect.Type, newVal string) err
 //	return "", -1
 //}
 
-func GetSrcFiltersFromRelationID(model interface{}) (res []*Filter, errOut error) {
+func TransformModelsIDToFilters(model interface{}) (res []*Filter, errOut error) {
 	if model == nil {
 		return nil, nil
 	}
@@ -503,7 +503,7 @@ func GetSrcFiltersFromRelationID(model interface{}) (res []*Filter, errOut error
 		}
 	}()
 
-	resVals := make([]int, 0, 10)
+	resVals := make([]string, 0, 10)
 
 	kind := reflect.TypeOf(model).Kind()
 	switch kind {
@@ -513,7 +513,7 @@ func GetSrcFiltersFromRelationID(model interface{}) (res []*Filter, errOut error
 		for i := 0; i < modelSlRef.Len(); i++ {
 			row := modelSlRef.Index(i)
 			idIntf := row.Elem().FieldByName("ID").Interface()
-			id, ok := idIntf.(int)
+			id, ok := idIntf.(string)
 			if !ok {
 				return nil, fmt.Errorf("%w: wrong type of ID", omniErr.ErrInternal)
 			}

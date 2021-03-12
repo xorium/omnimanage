@@ -4,34 +4,35 @@ import (
 	"context"
 	"gorm.io/gorm"
 	"omnimanage/pkg/filters"
-	"omnimanage/pkg/model/src"
+	"omnimanage/pkg/model/domain"
 )
 
 type Users interface {
-	GetOne(ctx context.Context, id int) (*src.User, error)
-	GetList(ctx context.Context, f []*filters.Filter) (src.Users, error)
-	Create(ctx context.Context, modelIn *src.User) (*src.User, error)
-	Update(ctx context.Context, modelIn *src.User) (*src.User, error)
-	Delete(ctx context.Context, id int) error
-	ReplaceRelation(ctx context.Context, id int, relationName string, relationData interface{}) error
-	AppendRelation(ctx context.Context, id int, relationName string, relationData interface{}) error
-	DeleteRelation(ctx context.Context, id int, relationName string, relationData interface{}) error
+	GetOne(ctx context.Context, id string) (*domain.User, error)
+	GetList(ctx context.Context, f []*filters.Filter) ([]*domain.User, error)
+	Create(ctx context.Context, modelIn *domain.User) (*domain.User, error)
+	Update(ctx context.Context, modelIn *domain.User) (*domain.User, error)
+	Delete(ctx context.Context, id string) error
+	ModifyRelation(ctx context.Context, id string, relationName string, operation int, relationData interface{}) error
+	//ReplaceRelation(ctx context.Context, id string, relationName string, relationData interface{}) error
+	//AppendRelation(ctx context.Context, id string, relationName string, relationData interface{}) error
+	//DeleteRelation(ctx context.Context, id string, relationName string, relationData interface{}) error
 }
 
 type Locations interface {
-	GetOne(ctx context.Context, id int) (*src.Location, error)
-	GetList(ctx context.Context, f []*filters.Filter) (src.Locations, error)
-	Create(ctx context.Context, modelIn *src.Location) (*src.Location, error)
-	Update(ctx context.Context, modelIn *src.Location) (*src.Location, error)
-	Delete(ctx context.Context, id int) error
+	GetOne(ctx context.Context, id string) (*domain.Location, error)
+	GetList(ctx context.Context, f []*filters.Filter) ([]*domain.Location, error)
+	Create(ctx context.Context, modelIn *domain.Location) (*domain.Location, error)
+	Update(ctx context.Context, modelIn *domain.Location) (*domain.Location, error)
+	Delete(ctx context.Context, id string) error
 }
 
 type Roles interface {
-	GetOne(ctx context.Context, id int) (*src.Role, error)
-	GetList(ctx context.Context, f []*filters.Filter) (src.Roles, error)
-	Create(ctx context.Context, modelIn *src.Role) (*src.Role, error)
-	Update(ctx context.Context, modelIn *src.Role) (*src.Role, error)
-	Delete(ctx context.Context, id int) error
+	GetOne(ctx context.Context, id string) (*domain.Role, error)
+	GetList(ctx context.Context, f []*filters.Filter) ([]*domain.Role, error)
+	Create(ctx context.Context, modelIn *domain.Role) (*domain.Role, error)
+	Update(ctx context.Context, modelIn *domain.Role) (*domain.Role, error)
+	Delete(ctx context.Context, id string) error
 }
 
 //type Companies interface {

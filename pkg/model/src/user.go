@@ -3,7 +3,7 @@ package src
 import (
 	"gorm.io/datatypes"
 	"omnimanage/pkg/mapper"
-	webmodels "omnimanage/pkg/model/domain"
+	"omnimanage/pkg/model/domain"
 )
 
 type User struct {
@@ -73,8 +73,8 @@ type Users []*User
 //	}
 //}
 
-func (m *User) ToWeb() (*webmodels.User, error) {
-	web := new(webmodels.User)
+func (m *User) ToWeb() (*domain.User, error) {
+	web := new(domain.User)
 
 	mr := mapper.Get()
 	err := mr.ConvertSrcToWeb(m, &web)
@@ -85,7 +85,7 @@ func (m *User) ToWeb() (*webmodels.User, error) {
 	return web, nil
 }
 
-func (*User) ScanFromWeb(web *webmodels.User) (*User, error) {
+func (*User) ScanFromWeb(web *domain.User) (*User, error) {
 	m := new(User)
 	mr := mapper.Get()
 	err := mr.ConvertWebToSrc(web, m)
@@ -96,11 +96,11 @@ func (*User) ScanFromWeb(web *webmodels.User) (*User, error) {
 	return m, nil
 }
 
-func (m Users) ToWeb() ([]*webmodels.User, error) {
+func (m Users) ToWeb() ([]*domain.User, error) {
 	if m == nil {
 		return nil, nil
 	}
-	omniM := make([]*webmodels.User, 0, 5)
+	omniM := make([]*domain.User, 0, 5)
 	for _, u := range m {
 		webUser, err := u.ToWeb()
 		if err != nil {
@@ -111,7 +111,7 @@ func (m Users) ToWeb() ([]*webmodels.User, error) {
 	return omniM, nil
 }
 
-func (m Users) ScanFromWeb(web []*webmodels.User) (Users, error) {
+func (m Users) ScanFromWeb(web []*domain.User) (Users, error) {
 	if len(web) == 0 {
 		return nil, nil
 	}
