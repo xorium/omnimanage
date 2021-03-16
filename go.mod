@@ -5,6 +5,7 @@ go 1.15
 require (
 	github.com/creasty/defaults v1.5.1
 	github.com/fatih/structs v1.1.0
+	github.com/fatih/structtag v1.2.0
 	github.com/go-playground/universal-translator v0.17.0 // indirect
 	github.com/go-playground/validator v9.31.0+incompatible
 	github.com/google/jsonapi v0.0.0-20201022225600-f822737867f6

@@ -1,5 +1,7 @@
 package domain
 
+//go:generate go run $PWD/pkg/utils/codegen/ --mode model-controller --model User --file_in $GOFILE
+
 type User struct {
 	ID            string                 `jsonapi:"primary,users" default:"1"`
 	Name          string                 `jsonapi:"attr,userName" validate:"required" default:"JohnLogin"`

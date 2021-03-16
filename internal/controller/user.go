@@ -258,8 +258,11 @@ func (ctr *UserController) ModifyRelation(ctx echo.Context) error {
 	//}
 	var domRelationModel interface{}
 	webRelName := ctx.Param("relation_name")
+	var domRelName string
 	switch webRelName {
 	case "location":
+		domRelName = "Location"
+
 		domRelationModel = new(domain.Location)
 		err := httpUtils.UnmarshalFromRequest(domRelationModel, ctx.Request().Body)
 		if err != nil {
@@ -290,6 +293,8 @@ func (ctr *UserController) ModifyRelation(ctx echo.Context) error {
 		//}
 
 	case "roles":
+		domRelName = "Roles"
+
 		domRecordsIntf, err := httpUtils.UnmarshalManyFromRequest(new(domain.Role), ctx.Request().Body)
 		if err != nil {
 			return omniErr.NewHTTPError(http.StatusBadRequest, omniErr.ErrTitleBadRequest, err)
@@ -333,7 +338,7 @@ func (ctr *UserController) ModifyRelation(ctx echo.Context) error {
 	err := ctr.manager.User.ModifyRelation(
 		ctx.Request().Context(),
 		ctx.Param("user_id"),
-		webRelName,
+		domRelName,
 		service.GetRelationOperFromHTTPMethod(ctx.Request().Method),
 		domRelationModel,
 	)
