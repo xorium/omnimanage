@@ -7,12 +7,16 @@ import (
 	"go/parser"
 	"go/token"
 	"strconv"
+	"strings"
 )
 
 type Relation struct {
-	Name     string
-	WebName  string
-	Multiple bool
+	Name          string
+	TypeName      string
+	TypeNameMulti string
+	WebName       string
+	Multiple      bool   // if "1 to many" or "many to many" relation type
+	NameSingle    string // if "1 to many" or "many to many" relation type
 }
 
 // structType contains a structType node and it's name. It's a convenient
@@ -82,7 +86,9 @@ func (p *ModelParser) GetRelations(structName string) (res []*Relation, errOut e
 
 			_, isArray := f.Type.(*ast.ArrayType)
 
-			newRel, err := p.getRelation(fieldName, f.Tag.Value, isArray)
+			typeName := getTypeName(f.Type)
+
+			newRel, err := p.getRelation(fieldName, f.Tag.Value, isArray, typeName)
 			if err != nil {
 				errOut = err
 				continue
@@ -105,7 +111,43 @@ func (p *ModelParser) GetRelations(structName string) (res []*Relation, errOut e
 	return nil, nil
 }
 
-func (p *ModelParser) getRelation(fieldName string, tagValue string, isArray bool) (*Relation, error) {
+func getTypeName(ex ast.Expr) string {
+
+	var (
+		ident *ast.Ident
+		ok    bool
+	)
+	_, ok = ex.(*ast.Ident)
+	if ok {
+		return ""
+	}
+
+	arr, ok := ex.(*ast.ArrayType)
+	if ok {
+		elt, ok := arr.Elt.(*ast.StarExpr)
+		if !ok {
+			return ""
+		}
+
+		ident, ok = elt.X.(*ast.Ident)
+		if !ok {
+			return ""
+		}
+	} else {
+		st, ok := ex.(*ast.StarExpr)
+		if !ok {
+			return ""
+		}
+
+		ident, ok = st.X.(*ast.Ident)
+		if !ok {
+			return ""
+		}
+	}
+	return ident.Name
+}
+
+func (p *ModelParser) getRelation(fieldName string, tagValue string, isArray bool, typeName string) (*Relation, error) {
 	if tagValue == "" {
 		return nil, nil
 	}
@@ -136,6 +178,13 @@ func (p *ModelParser) getRelation(fieldName string, tagValue string, isArray boo
 		newR.WebName = tag.Options[0]
 	}
 	newR.Multiple = isArray
+	newR.TypeName = typeName
+	if newR.Multiple && len(newR.Name) > 1 {
+		newR.NameSingle = strings.TrimSuffix(newR.Name, "s")
+		newR.TypeNameMulti = typeName + "s"
+	} else {
+		newR.NameSingle = newR.Name
+	}
 
 	return newR, nil
 }

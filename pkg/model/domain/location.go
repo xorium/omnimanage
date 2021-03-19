@@ -1,5 +1,11 @@
 package domain
 
+//go:generate go run $PWD/pkg/utils/codegen/ --mode model-controller --model Location --file_in $GOFILE --company_resource true
+//go:generate go run $PWD/pkg/utils/codegen/ --mode model-store --model Location --file_in $GOFILE --company_resource true
+//go:generate go run $PWD/pkg/utils/codegen/ --mode model-store-interface --model Location --file_in $GOFILE --company_resource true
+//go:generate go run $PWD/pkg/utils/codegen/ --mode model-service --model Location --file_in $GOFILE --company_resource true
+//go:generate go run $PWD/pkg/utils/codegen/ --mode model-service-interface --model Location --file_in $GOFILE --company_resource true
+
 type Location struct {
 	ID       string                 `jsonapi:"primary,locations" default:"123"`
 	Name     string                 `jsonapi:"attr,name" default:"LocationName"`

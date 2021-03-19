@@ -10,7 +10,7 @@ type Company struct {
 	Name string `omni:"Name"`
 }
 
-type Companies []*Company
+type Companys []*Company
 
 func (Company) TableName() string {
 	return "companies"
@@ -36,7 +36,7 @@ func (*Company) ScanFromWeb(web *webmodels.Company) (*Company, error) {
 	return m, nil
 }
 
-func (m Companies) ToWeb() ([]*webmodels.Company, error) {
+func (m Companys) ToWeb() ([]*webmodels.Company, error) {
 	if m == nil {
 		return nil, nil
 	}

@@ -27,36 +27,83 @@ func GetRelationOperFromHTTPMethod(method string) int {
 	return 0
 }
 
-type UserService interface {
+type CompanyServiceI interface {
+	GetOne(ctx context.Context, id string) (*domain.Company, error)
+	GetList(ctx context.Context, f []*filters.Filter) ([]*domain.Company, error)
+	Create(ctx context.Context, modelIn *domain.Company) (*domain.Company, error)
+	Update(ctx context.Context, modelIn *domain.Company) (*domain.Company, error)
+	Delete(ctx context.Context, id string) error
+}
+
+type UserServiceI interface {
 	GetOne(ctx context.Context, id string) (*domain.User, error)
 	GetList(ctx context.Context, f []*filters.Filter) ([]*domain.User, error)
 	Create(ctx context.Context, modelIn *domain.User) (*domain.User, error)
 	Update(ctx context.Context, modelIn *domain.User) (*domain.User, error)
 	Delete(ctx context.Context, id string) error
-	GetRelation(ctx context.Context, id string, relationName string) (interface{}, error)
-	ModifyRelation(ctx context.Context, id string, relationName string, operation int, relationData interface{}) error
+
+	GetCompany(ctx context.Context, id string) (*domain.Company, error)
+	AppendCompany(ctx context.Context, id string, relationData *domain.Company) error
+	ReplaceCompany(ctx context.Context, id string, relationData *domain.Company) error
+	DeleteCompany(ctx context.Context, id string, relationData *domain.Company) error
+
+	GetLocation(ctx context.Context, id string) (*domain.Location, error)
+	AppendLocation(ctx context.Context, id string, relationData *domain.Location) error
+	ReplaceLocation(ctx context.Context, id string, relationData *domain.Location) error
+	DeleteLocation(ctx context.Context, id string, relationData *domain.Location) error
+
+	GetRoles(ctx context.Context, id string) ([]*domain.Role, error)
+	AppendRoles(ctx context.Context, id string, relationData []*domain.Role) error
+	ReplaceRoles(ctx context.Context, id string, relationData []*domain.Role) error
+	DeleteRoles(ctx context.Context, id string, relationData []*domain.Role) error
+
+	GetSubscriptions(ctx context.Context, id string) ([]*domain.Subscription, error)
+	AppendSubscriptions(ctx context.Context, id string, relationData []*domain.Subscription) error
+	ReplaceSubscriptions(ctx context.Context, id string, relationData []*domain.Subscription) error
+	DeleteSubscriptions(ctx context.Context, id string, relationData []*domain.Subscription) error
 }
 
-type LocationService interface {
-	GetOne(ctx context.Context, id int) (*domain.Location, error)
-	GetList(ctx context.Context, f []*filters.Filter) ([]*domain.Location, error)
-	Create(ctx context.Context, modelIn *domain.Location) (*domain.Location, error)
-	Update(ctx context.Context, modelIn *domain.Location) (*domain.Location, error)
-	Delete(ctx context.Context, id int) error
-}
-
-type RoleService interface {
-	GetOne(ctx context.Context, id int) (*domain.Role, error)
+type RoleServiceI interface {
+	GetOne(ctx context.Context, id string) (*domain.Role, error)
 	GetList(ctx context.Context, f []*filters.Filter) ([]*domain.Role, error)
 	Create(ctx context.Context, modelIn *domain.Role) (*domain.Role, error)
 	Update(ctx context.Context, modelIn *domain.Role) (*domain.Role, error)
-	Delete(ctx context.Context, id int) error
+	Delete(ctx context.Context, id string) error
+
+	GetCompany(ctx context.Context, id string) (*domain.Company, error)
+	AppendCompany(ctx context.Context, id string, relationData *domain.Company) error
+	ReplaceCompany(ctx context.Context, id string, relationData *domain.Company) error
+	DeleteCompany(ctx context.Context, id string, relationData *domain.Company) error
+}
+
+type LocationServiceI interface {
+	GetOne(ctx context.Context, id string) (*domain.Location, error)
+	GetList(ctx context.Context, f []*filters.Filter) ([]*domain.Location, error)
+	Create(ctx context.Context, modelIn *domain.Location) (*domain.Location, error)
+	Update(ctx context.Context, modelIn *domain.Location) (*domain.Location, error)
+	Delete(ctx context.Context, id string) error
+
+	GetCompany(ctx context.Context, id string) (*domain.Company, error)
+	AppendCompany(ctx context.Context, id string, relationData *domain.Company) error
+	ReplaceCompany(ctx context.Context, id string, relationData *domain.Company) error
+	DeleteCompany(ctx context.Context, id string, relationData *domain.Company) error
+
+	GetChildren(ctx context.Context, id string) ([]*domain.Location, error)
+	AppendChildren(ctx context.Context, id string, relationData []*domain.Location) error
+	ReplaceChildren(ctx context.Context, id string, relationData []*domain.Location) error
+	DeleteChildren(ctx context.Context, id string, relationData []*domain.Location) error
+
+	GetUsers(ctx context.Context, id string) ([]*domain.User, error)
+	AppendUsers(ctx context.Context, id string, relationData []*domain.User) error
+	ReplaceUsers(ctx context.Context, id string, relationData []*domain.User) error
+	DeleteUsers(ctx context.Context, id string, relationData []*domain.User) error
 }
 
 type Manager struct {
-	User     UserService
-	Location LocationService
-	Role     RoleService
+	Company  CompanyServiceI
+	User     UserServiceI
+	Location LocationServiceI
+	Role     RoleServiceI
 }
 
 func NewManager(store *store.Store) (*Manager, error) {
@@ -65,6 +112,9 @@ func NewManager(store *store.Store) (*Manager, error) {
 	}
 
 	return &Manager{
-		User: NewUserService(store),
+		Company:  NewCompanyService(store),
+		User:     NewUserService(store),
+		Location: NewLocationService(store),
+		Role:     NewRoleService(store),
 	}, nil
 }

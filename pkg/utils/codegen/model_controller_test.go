@@ -3,5 +3,5 @@ package main
 import "testing"
 
 func TestGetModelDescription(t *testing.T) {
-	_, _ = getModelDescription("User", `C:\_projects\netcube\omninanage\pkg\model\domain\user.go`)
+	_, _ = getModelDescription("Location", `C:\_projects\netcube\omninanage\pkg\model\domain\location.go`, true)
 }

@@ -1,6 +1,10 @@
 package domain
 
-//go:generate go run $PWD/pkg/utils/codegen/ --mode model-controller --model User --file_in $GOFILE
+//go:generate go run $PWD/pkg/utils/codegen/ --mode model-controller --model User --file_in $GOFILE --company_resource true
+//go:generate go run $PWD/pkg/utils/codegen/ --mode model-store --model User --file_in $GOFILE --company_resource true
+//go:generate go run $PWD/pkg/utils/codegen/ --mode model-store-interface --model User --file_in $GOFILE --company_resource true
+//go:generate go run $PWD/pkg/utils/codegen/ --mode model-service --model User --file_in $GOFILE --company_resource true
+//go:generate go run $PWD/pkg/utils/codegen/ --mode model-service-interface --model User --file_in $GOFILE --company_resource true
 
 type User struct {
 	ID            string                 `jsonapi:"primary,users" default:"1"`
