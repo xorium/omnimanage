@@ -12,7 +12,6 @@ package service
 
 import (
 	"context"
-	"fmt"
 	"omnimanage/internal/store"
 	omniErr "omnimanage/pkg/error"
 	"omnimanage/pkg/filters"
@@ -56,7 +55,7 @@ func (svc *{{.Name}}DomService) Delete(ctx context.Context, id string) error {
 
 {{range .Relations}}
 // Get{{.Name}} gets {{$.Name}}'s {{.Name}}
-func (svc *{{$.Name}}DomService) Get{{.Name}}(ctx context.Context, id string) ({{if .Multiple}} []*domain.{{.NameSingle}} {{else}}*domain.{{.Name}}{{end}}, error) {
+func (svc *{{$.Name}}DomService) Get{{.Name}}(ctx context.Context, id string) ({{if .Multiple}} []*domain.{{.TypeName}} {{else}}*domain.{{.TypeName}}{{end}}, error) {
 	mainModel, err := svc.store.{{$.Name}}.GetOne(ctx, id)
 	if err != nil {
 		return nil, err
@@ -70,24 +69,24 @@ func (svc *{{$.Name}}DomService) Get{{.Name}}(ctx context.Context, id string) ({
 	if err != nil {
 		return nil, err
 	}
-	return svc.store.{{.NameSingle}}.GetList(ctx, filters)
+	return svc.store.{{.TypeName}}.GetList(ctx, filters)
 	{{else}}
 	return svc.store.{{.Name}}.GetOne(ctx, mainModel.{{.Name}}.ID)
 	{{end}}
 }
 
 // Append{{.Name}} appends {{.Name}} new relation to {{$.Name}} by id
-func (svc *{{$.Name}}DomService) Append{{.Name}}(ctx context.Context, id string, relationData {{if .Multiple}} []*domain.{{.NameSingle}} {{else}}*domain.{{.Name}}{{end}}) error {
+func (svc *{{$.Name}}DomService) Append{{.Name}}(ctx context.Context, id string, relationData {{if .Multiple}} []*domain.{{.TypeName}} {{else}}*domain.{{.TypeName}}{{end}}) error {
 	return svc.store.{{$.Name}}.Append{{.Name}}(ctx, id, relationData)
 }
 
 // Replace{{.Name}} replaces {{.Name}} old relation in {{$.Name}} by id with new {{.Name}}
-func (svc *{{$.Name}}DomService) Replace{{.Name}}(ctx context.Context, id string, relationData {{if .Multiple}} []*domain.{{.NameSingle}} {{else}}*domain.{{.Name}}{{end}}) error {
+func (svc *{{$.Name}}DomService) Replace{{.Name}}(ctx context.Context, id string, relationData {{if .Multiple}} []*domain.{{.TypeName}} {{else}}*domain.{{.TypeName}}{{end}}) error {
 	return svc.store.{{$.Name}}.Replace{{.Name}}(ctx, id, relationData)
 }
 
 // Delete{{.Name}} deletes {{.Name}} relation in {{$.Name}} by id
-func (svc *{{$.Name}}DomService) Delete{{.Name}}(ctx context.Context, id string, relationData {{if .Multiple}} []*domain.{{.NameSingle}} {{else}}*domain.{{.Name}}{{end}}) error {
+func (svc *{{$.Name}}DomService) Delete{{.Name}}(ctx context.Context, id string, relationData {{if .Multiple}} []*domain.{{.TypeName}} {{else}}*domain.{{.TypeName}}{{end}}) error {
 	return svc.store.{{$.Name}}.Delete{{.Name}}(ctx, id, relationData)
 }
 {{end}}

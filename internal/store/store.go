@@ -83,22 +83,6 @@ type RoleStoreI interface {
 	DeleteCompany(ctx context.Context, id string, relationData *domain.Company) error
 }
 
-//type Locations interface {
-//	GetOne(ctx context.Context, id string) (*domain.Location, error)
-//	GetList(ctx context.Context, f []*filters.Filter) ([]*domain.Location, error)
-//	Create(ctx context.Context, modelIn *domain.Location) (*domain.Location, error)
-//	Update(ctx context.Context, modelIn *domain.Location) (*domain.Location, error)
-//	Delete(ctx context.Context, id string) error
-//}
-//
-//type Roles interface {
-//	GetOne(ctx context.Context, id string) (*domain.Role, error)
-//	GetList(ctx context.Context, f []*filters.Filter) ([]*domain.Role, error)
-//	Create(ctx context.Context, modelIn *domain.Role) (*domain.Role, error)
-//	Update(ctx context.Context, modelIn *domain.Role) (*domain.Role, error)
-//	Delete(ctx context.Context, id string) error
-//}
-
 // Store contains all repositories
 type Store struct {
 	Company  CompanyStoreI

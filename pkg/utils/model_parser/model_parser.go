@@ -7,7 +7,6 @@ import (
 	"go/parser"
 	"go/token"
 	"strconv"
-	"strings"
 )
 
 type Relation struct {
@@ -15,8 +14,8 @@ type Relation struct {
 	TypeName      string
 	TypeNameMulti string
 	WebName       string
-	Multiple      bool   // if "1 to many" or "many to many" relation type
-	NameSingle    string // if "1 to many" or "many to many" relation type
+	Multiple      bool // if "1 to many" or "many to many" relation type
+	//NameSingle    string // if "1 to many" or "many to many" relation type
 }
 
 // structType contains a structType node and it's name. It's a convenient
@@ -180,10 +179,10 @@ func (p *ModelParser) getRelation(fieldName string, tagValue string, isArray boo
 	newR.Multiple = isArray
 	newR.TypeName = typeName
 	if newR.Multiple && len(newR.Name) > 1 {
-		newR.NameSingle = strings.TrimSuffix(newR.Name, "s")
+		//newR.NameSingle = strings.TrimSuffix(newR.Name, "s")
 		newR.TypeNameMulti = typeName + "s"
-	} else {
-		newR.NameSingle = newR.Name
+		//} else {
+		//newR.NameSingle = newR.Name
 	}
 
 	return newR, nil

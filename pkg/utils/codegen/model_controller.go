@@ -284,18 +284,18 @@ func (ctr *{{.Name}}Controller) ModifyRelation(ctx echo.Context) error {
 	{{range .Relations}}
 		case "{{.WebName}}":
 			{{if .Multiple}}
-			domRecordsIntf, err := httpUtils.UnmarshalManyFromRequest(new(domain.{{.NameSingle}}), ctx.Request().Body)
+			domRecordsIntf, err := httpUtils.UnmarshalManyFromRequest(new(domain.{{.TypeName}}), ctx.Request().Body)
 			if err != nil {
 				return omniErr.NewHTTPError(http.StatusBadRequest, omniErr.ErrTitleBadRequest, err)
 			}
 	
-			var domRelModel []*domain.{{.NameSingle}}
+			var domRelModel []*domain.{{.TypeName}}
 			err = converter.SliceI2SliceModel(domRecordsIntf, &domRelModel)
 			if err != nil {
 				return omniErr.NewHTTPError(http.StatusInternalServerError, omniErr.ErrTitleInternal, err)
 			}
 			{{else}}
-			domRelModel := new(domain.{{.Name}})
+			domRelModel := new(domain.{{.TypeName}})
 			err := httpUtils.UnmarshalFromRequest(domRelModel, ctx.Request().Body)
 			if err != nil {
 				return omniErr.NewHTTPError(http.StatusBadRequest, omniErr.ErrTitleBadRequest, err)
