@@ -1,4 +1,4 @@
-module omnimanage
+module github.com/xorium/omnimanage
 
 go 1.15
 
